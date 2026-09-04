@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+
+# Environment variables
+.env
+
+# Build outputs
+dist/
+build/
+
+# ML Model Artifacts (commit code only, generate locally or via CI/CD)
+*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db

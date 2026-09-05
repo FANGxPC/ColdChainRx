@@ -17,3 +17,4 @@ ColdChainRx/
  ├── frontend/       # React + Vite consumer QR verification portal  
  └── ml-service/     # Python Isolation Forest training & inference microservice  
    
+

@@ -1,0 +1,18 @@
+Week 0 commits (week-0 starts at 2026-09-05)
+
+1. 8388050 | 2026-09-05 | first commit
+   full: 8388050faa3a7785f4fee988cf04e4fe1a37514a
+2. 2ff8f10 | 2026-09-05 | first commit
+   full: 2ff8f10161556475836d0f5b9b63147475281617
+3. 8c2f7f7 | 2026-09-05 | first commit
+   full: 8c2f7f73c6b3531d30d05d644074dc6fc914061a
+4. 0452c21 | 2026-09-05 | Created file structure & inital env
+   full: 0452c212006a42a1fb406f29d82d44e5b9cfb360
+5. 1d8cfe5 | 2026-09-05 | Resolved README merge conflict
+   full: 1d8cfe56614fbd7adbd083841b5915facf402b21
+6. c5859a1 | 2026-09-05 |  Modified README
+   full: c5859a17116b2af8d0889d9d5730a3195fe6cbed
+7. 314955e | 2026-09-05 | Cleaned dataset
+   full: 314955ec42e763da6eb30b43a116815777525d2d
+8. 8f0c1a0 | 2026-09-05 | Add section header for project structure
+   full: 8f0c1a0db0eebf39f1c45b14f28b0b6c07cbd953

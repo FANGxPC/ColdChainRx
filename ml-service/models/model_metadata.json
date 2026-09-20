@@ -1,0 +1,72 @@
+{
+  "model_name": "ColdChainRx Isolation Forest Baseline Anomaly Detector",
+  "version": "1.0.0",
+  "author": "Sadique (ML/Frontend Lead)",
+  "week": "Week 5 Deliverable",
+  "feature_names": [
+    "thermal_shipper_temp_reading",
+    "room_temp_reading",
+    "room_humidity_reading",
+    "item_expiry_hours",
+    "ultra_low_temperature_freezer_hours",
+    "out_of_bound_temperature_hours",
+    "refrigeration_temperature_hours",
+    "temp_delta"
+  ],
+  "n_estimators": 150,
+  "contamination": 0.05,
+  "total_training_samples": 26674,
+  "anomaly_samples_flagged": 1332,
+  "normal_samples_flagged": 25342,
+  "score_threshold_0": 0.0,
+  "feature_stats": {
+    "thermal_shipper_temp_reading": {
+      "mean": -54.02358101522081,
+      "std": 28.55475800823984,
+      "min": -71.0,
+      "max": 15.0
+    },
+    "room_temp_reading": {
+      "mean": 0.6928469670840519,
+      "std": 21.93431339181504,
+      "min": -71.0,
+      "max": 25.0
+    },
+    "room_humidity_reading": {
+      "mean": 91.82177401214666,
+      "std": 2.941287491667491,
+      "min": 65.0,
+      "max": 95.0
+    },
+    "item_expiry_hours": {
+      "mean": 576.2349103996401,
+      "std": 223.66496283107077,
+      "min": -1.0,
+      "max": 840.0
+    },
+    "ultra_low_temperature_freezer_hours": {
+      "mean": 252.8590387643398,
+      "std": 220.71595957236173,
+      "min": 0.0,
+      "max": 720.0
+    },
+    "out_of_bound_temperature_hours": {
+      "mean": 0.8387943315588213,
+      "std": 2.000963435567882,
+      "min": 0.0,
+      "max": 7.0
+    },
+    "refrigeration_temperature_hours": {
+      "mean": 10.138636874859413,
+      "std": 26.014742309164692,
+      "min": 0.0,
+      "max": 120.0
+    },
+    "temp_delta": {
+      "mean": 54.93859188723101,
+      "std": 32.484516043929354,
+      "min": 0.0,
+      "max": 90.0
+    }
+  }
+}

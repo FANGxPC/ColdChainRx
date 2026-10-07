@@ -15,52 +15,74 @@ export default function VerifyPage() {
   const [searchBatchId, setSearchBatchId] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [apiData, setApiData] = useState<any>(null);
 
   // Suppress hydration mismatch warning since we render client-side only mock data dynamically
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const currentDataset = (mockTelemetryDatasets as any)[selectedDatasetKey] || mockTelemetryDatasets.standard;
+  const localDataset = (mockTelemetryDatasets as any)[selectedDatasetKey] || mockTelemetryDatasets.standard;
+  const currentDataset = apiData || localDataset;
 
+  // Fetch from API whenever the batch ID we want changes
   useEffect(() => {
-    async function fetchQrCode() {
+    async function fetchBatchData() {
+      if (!mounted) return;
       setLoading(true);
+      
+      const targetBatchId = localDataset.batchId;
+      
       try {
-        const response = await fetch(`http://localhost:3000/verify/${currentDataset.batchId}`);
+        // Try fetching actual batch data and verification status from API
+        const response = await fetch(`http://localhost:3001/verify/${targetBatchId}`);
         if (response.ok) {
           const resData = await response.json();
-          if (resData.qrCode) {
-            setQrCodeUrl(resData.qrCode);
+          if (resData.success) {
+            setApiData(resData.data);
+            if (resData.qrCode) {
+              setQrCodeUrl(resData.qrCode);
+            }
             setLoading(false);
             return;
           }
         }
       } catch (err) {
-        // Fallback
+        console.warn("Backend API unavailable, using local mock fallback.", err);
       }
+      
+      // Fallback
+      setApiData(null);
       setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-        `http://localhost:3000/verify/${currentDataset.batchId}`
+        `http://localhost:3000/verify/${targetBatchId}`
       )}`);
       setLoading(false);
     }
 
-    if (mounted) fetchQrCode();
-  }, [currentDataset.batchId, mounted]);
+    fetchBatchData();
+  }, [localDataset.batchId, mounted]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchBatchId.trim()) return;
+    const input = searchBatchId.trim();
+    if (!input) return;
+
+    // Sanitize and validate input (Week 7 Hardening)
+    const batchIdRegex = /^[A-Za-z0-9\-]{3,30}$/;
+    if (!batchIdRegex.test(input)) {
+      alert("Invalid format: Batch ID must be alphanumeric and hyphens only, between 3 and 30 characters.");
+      return;
+    }
 
     const foundKey = Object.keys(mockTelemetryDatasets).find(
       (key) =>
-        key.toLowerCase() === searchBatchId.toLowerCase() ||
-        (mockTelemetryDatasets as any)[key].batchId.toLowerCase() === searchBatchId.toLowerCase()
+        key.toLowerCase() === input.toLowerCase() ||
+        (mockTelemetryDatasets as any)[key].batchId.toLowerCase() === input.toLowerCase()
     );
 
     if (foundKey) {
       setSelectedDatasetKey(foundKey);
     } else {
-      alert(`Batch "${searchBatchId}" not found in local mock network. Showing default batch.`);
+      alert(`Batch "${searchBatchId}" not found in network. Showing default batch.`);
     }
   };
 
@@ -192,7 +214,7 @@ export default function VerifyPage() {
         </section>
 
         <section className="mt-4 animate-rise [animation-delay:160ms]">
-          <TempHistoryChart batchData={currentDataset} isMockData={true} />
+          <TempHistoryChart batchData={currentDataset} isMockData={!apiData} />
         </section>
 
         <section className="mt-4 animate-rise [animation-delay:240ms]">

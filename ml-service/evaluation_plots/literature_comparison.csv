@@ -1,0 +1,5 @@
+System,Blockchain,IoT Layer,ML Anomaly,Consumer QR,Throughput (TPS),Avg Latency (ms)
+Article 1 [MDPI '25],Fabric,Yes,No,No,~300,~150
+Article 5 [IEEE '24],Ethereum,Yes,No,No,~15,"~12,000"
+Article 8 [Systems '26],Fabric,Yes,Yes,No,~550,~85
+ColdChainRx (Ours),Fabric,Yes,Yes,Yes,~650 (mock),~85 (mock)

@@ -52,7 +52,7 @@ def predict():
         if not data:
             return jsonify({"error": "No JSON payload provided"}), 400
 
-        # Extract features based on metadata order
+
         feature_names = metadata.get("feature_names", [])
         features = []
         for feature in feature_names:
@@ -60,11 +60,11 @@ def predict():
                 return jsonify({"error": f"Missing required feature: {feature}"}), 400
             features.append(data[feature])
 
-        # Prepare for prediction
+
         X = np.array(features).reshape(1, -1)
         X_scaled = scaler.transform(X)
 
-        # Predict
+
         prediction = model.predict(X_scaled)[0]
         anomaly_score = model.decision_function(X_scaled)[0]
 

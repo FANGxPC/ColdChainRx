@@ -1,72 +1,198 @@
 {
-  "model_name": "ColdChainRx Isolation Forest Baseline Anomaly Detector",
-  "version": "1.0.0",
+  "model_name": "ColdChainRx Isolation Forest \u2014 Real Sensor Edition",
+  "version": "2.0.0",
   "author": "Sadique (ML/Frontend Lead)",
-  "week": "Week 5 Deliverable",
+  "sensor_inputs": {
+    "temperature": "Temperature in \u00b0C (single sensor per device)",
+    "humidity": "Relative humidity in % (single sensor per device)"
+  },
   "feature_names": [
-    "thermal_shipper_temp_reading",
-    "room_temp_reading",
-    "room_humidity_reading",
-    "item_expiry_hours",
-    "ultra_low_temperature_freezer_hours",
-    "out_of_bound_temperature_hours",
-    "refrigeration_temperature_hours",
-    "temp_delta"
+    "temperature",
+    "humidity",
+    "temp_rolling_mean",
+    "temp_rolling_std",
+    "humidity_rolling_mean",
+    "humidity_rolling_std",
+    "temp_rate_of_change",
+    "humidity_rate_of_change",
+    "temp_deviation",
+    "humidity_deviation",
+    "hour_of_day"
   ],
+  "rolling_window_size": 12,
   "n_estimators": 150,
   "contamination": 0.05,
-  "total_training_samples": 26674,
-  "anomaly_samples_flagged": 1332,
-  "normal_samples_flagged": 25342,
-  "score_threshold_0": 0.0,
+  "total_training_samples": 1083195,
+  "anomaly_samples_flagged": 54160,
+  "normal_samples_flagged": 1029035,
+  "score_threshold_0": 4.1975988250607735e-17,
   "feature_stats": {
-    "thermal_shipper_temp_reading": {
-      "mean": -54.02358101522081,
-      "std": 28.55475800823984,
-      "min": -71.0,
-      "max": 15.0
+    "temperature": {
+      "mean": 9.558985778183978,
+      "std": 4.164793876132669,
+      "min": 4.8,
+      "max": 42.2
     },
-    "room_temp_reading": {
-      "mean": 0.6928469670840519,
-      "std": 21.93431339181504,
-      "min": -71.0,
-      "max": 25.0
+    "humidity": {
+      "mean": 76.64396973767417,
+      "std": 10.973605623605756,
+      "min": 26.1,
+      "max": 99.9
     },
-    "room_humidity_reading": {
-      "mean": 91.82177401214666,
-      "std": 2.941287491667491,
-      "min": 65.0,
-      "max": 95.0
+    "temp_rolling_mean": {
+      "mean": 9.559473989289355,
+      "std": 4.165169953283856,
+      "min": 4.8,
+      "max": 42.125
     },
-    "item_expiry_hours": {
-      "mean": 576.2349103996401,
-      "std": 223.66496283107077,
-      "min": -1.0,
-      "max": 840.0
-    },
-    "ultra_low_temperature_freezer_hours": {
-      "mean": 252.8590387643398,
-      "std": 220.71595957236173,
+    "temp_rolling_std": {
+      "mean": 0.028807326745973083,
+      "std": 0.03447086921986513,
       "min": 0.0,
-      "max": 720.0
+      "max": 6.103221950889398
     },
-    "out_of_bound_temperature_hours": {
-      "mean": 0.8387943315588213,
-      "std": 2.000963435567882,
-      "min": 0.0,
-      "max": 7.0
+    "humidity_rolling_mean": {
+      "mean": 76.64260296850627,
+      "std": 10.952282866201333,
+      "min": 26.316666666666666,
+      "max": 99.9
     },
-    "refrigeration_temperature_hours": {
-      "mean": 10.138636874859413,
-      "std": 26.014742309164692,
+    "humidity_rolling_std": {
+      "mean": 0.5464036323345236,
+      "std": 0.4455400830144372,
       "min": 0.0,
-      "max": 120.0
+      "max": 16.27598342232003
     },
-    "temp_delta": {
-      "mean": 54.93859188723101,
-      "std": 32.484516043929354,
+    "temp_rate_of_change": {
+      "mean": -8.807278467865896e-05,
+      "std": 0.041507348558065725,
+      "min": -11.2,
+      "max": 0.6999999999999993
+    },
+    "humidity_rate_of_change": {
+      "mean": 0.000259233102073034,
+      "std": 0.21988620266495332,
+      "min": -6.500000000000007,
+      "max": 29.900000000000006
+    },
+    "temp_deviation": {
+      "mean": -0.00048821110537145316,
+      "std": 0.056371690408802425,
+      "min": -9.657142857142855,
+      "max": 1.5250000000000004
+    },
+    "humidity_deviation": {
+      "mean": 0.0013667691679337707,
+      "std": 1.0551926413535073,
+      "min": -15.666666666666671,
+      "max": 26.685714285714297
+    },
+    "hour_of_day": {
+      "mean": 11.507264158346374,
+      "std": 6.928752711788336,
       "min": 0.0,
-      "max": 90.0
+      "max": 23.0
+    }
+  },
+  "per_sensor_stats": {
+    "SENSOR01": {
+      "rows": 156019,
+      "temp_mean": 11.344790698568763,
+      "temp_std": 5.777247145837551,
+      "temp_min": 5.3,
+      "temp_max": 42.2,
+      "hum_mean": 75.23692819464297,
+      "hum_std": 11.089261315399359,
+      "hum_min": 26.1,
+      "hum_max": 99.9
+    },
+    "SENSOR02": {
+      "rows": 156980,
+      "temp_mean": 11.941102051216715,
+      "temp_std": 6.422245391461034,
+      "temp_min": 5.8,
+      "temp_max": 38.7,
+      "hum_mean": 74.36638234169958,
+      "hum_std": 12.226570504434145,
+      "hum_min": 28.0,
+      "hum_max": 99.9
+    },
+    "SENSOR03": {
+      "rows": 84450,
+      "temp_mean": 6.544523386619302,
+      "temp_std": 1.443053036425541,
+      "temp_min": 4.8,
+      "temp_max": 21.2,
+      "hum_mean": 87.2618709295441,
+      "hum_std": 5.215007333493502,
+      "hum_min": 67.0,
+      "hum_max": 99.9
+    },
+    "SENSOR04": {
+      "rows": 151248,
+      "temp_mean": 8.365795250185126,
+      "temp_std": 2.184654131580923,
+      "temp_min": 5.6,
+      "temp_max": 22.0,
+      "hum_mean": 79.06696551359357,
+      "hum_std": 7.595449807545644,
+      "hum_min": 53.9,
+      "hum_max": 99.9
+    },
+    "SENSOR05": {
+      "rows": 31146,
+      "temp_mean": 8.242092082450394,
+      "temp_std": 1.2633319510545862,
+      "temp_min": 6.9,
+      "temp_max": 13.3,
+      "hum_mean": 70.31916457972132,
+      "hum_std": 5.194652370439691,
+      "hum_min": 52.4,
+      "hum_max": 99.9
+    },
+    "SENSOR06": {
+      "rows": 156887,
+      "temp_mean": 7.7975702257038515,
+      "temp_std": 2.169439316749559,
+      "temp_min": 5.1,
+      "temp_max": 22.5,
+      "hum_mean": 79.60267517385124,
+      "hum_std": 8.335133022782934,
+      "hum_min": 53.7,
+      "hum_max": 99.9
+    },
+    "SENSOR07": {
+      "rows": 156885,
+      "temp_mean": 8.536291551136182,
+      "temp_std": 2.1180332692519035,
+      "temp_min": 6.0,
+      "temp_max": 22.8,
+      "hum_mean": 83.05876724989643,
+      "hum_std": 8.126561839278569,
+      "hum_min": 53.5,
+      "hum_max": 99.9
+    },
+    "SENSOR08": {
+      "rows": 156863,
+      "temp_mean": 11.685181336580326,
+      "temp_std": 2.0862273076641045,
+      "temp_min": 9.0,
+      "temp_max": 22.3,
+      "hum_mean": 63.820507704174965,
+      "hum_std": 6.488970224475166,
+      "hum_min": 41.2,
+      "hum_max": 91.3
+    },
+    "SENSOR09": {
+      "rows": 32717,
+      "temp_mean": 7.320334994039796,
+      "temp_std": 1.6141156317891094,
+      "temp_min": 5.4,
+      "temp_max": 12.7,
+      "hum_mean": 78.2289879878962,
+      "hum_std": 6.935692479377153,
+      "hum_min": 55.6,
+      "hum_max": 99.9
     }
   }
 }

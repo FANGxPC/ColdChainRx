@@ -186,11 +186,11 @@ The ML service uses Scikit-Learn's Isolation Forest algorithm to detect anomalie
 ### Verify Batch Status & Generate QR Code
 
 - **Endpoint**: `GET /verify/:batchId`
-- **Example URL**: `http://localhost:3000/verify/BATCH123`
+- **Example URL**: `http://localhost:3001/verify/BATCH123`
 
 #### Quick Test using cURL:
 ```bash
-curl http://localhost:3000/verify/BATCH123
+curl http://localhost:3001/verify/BATCH123
 ```
 
 #### Example JSON Response:
@@ -211,8 +211,8 @@ curl http://localhost:3000/verify/BATCH123
 
 ## ❓ Troubleshooting & FAQs
 
-- **Port 3000 or 5173 is already in use**:
-  Ensure no other node or web service is running on ports `3000` or `5173`. You can terminate conflicting processes or modify the port variable in `backend/server.js` / `frontend/vite.config.js`.
+- **Port 3001 or 5173 is already in use**:
+  Ensure no other node or web service is running on ports `3001` or `5173`. You can terminate conflicting processes or modify the port variable in `backend/server.js` / `frontend/vite.config.js`.
 
 - **CORS Errors in Browser**:
   CORS middleware is enabled in `backend/server.js` via `cors()`. Ensure the Express server is running when making requests from the React frontend.

@@ -46,7 +46,7 @@ def _get_buffer(sensor_id: str) -> deque:
     return _sensor_buffers[sensor_id]
 
 
-def _compute_features(temperature: float, humidity: float, sensor_id: str) -> np.ndarray:
+def _compute_features(temperature: float, humidity: float, sensor_id: str, timestamp=None) -> np.ndarray:
     """
     Append the new reading to the sensor's rolling buffer and compute the
     11 engineered features expected by the trained model.
@@ -81,7 +81,28 @@ def _compute_features(temperature: float, humidity: float, sensor_id: str) -> np
     hum_std   = float(np.std(hums))    if len(hums)  > 1 else 0.0
 
     from datetime import datetime
-    hour_of_day = datetime.now().hour
+    # Use the supplied sensor timestamp when available.
+    if timestamp is not None and str(timestamp).strip():
+        timestamp_text = str(timestamp).strip()
+        parsed_timestamp = None
+        for timestamp_format in (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+        ):
+            try:
+                parsed_timestamp = datetime.strptime(timestamp_text, timestamp_format)
+                break
+            except ValueError:
+                continue
+        if parsed_timestamp is None:
+            try:
+                parsed_timestamp = datetime.fromisoformat(timestamp_text.replace("Z", "+00:00"))
+            except ValueError:
+                raise ValueError("Invalid timestamp format; use YYYY-MM-DD HH:MM:SS or ISO 8601.")
+        hour_of_day = parsed_timestamp.hour
+    else:
+        hour_of_day = datetime.now().hour
 
     features = np.array([
         temperature,
@@ -152,7 +173,7 @@ def predict():
         sensor_id   = str(data.get("sensor_id", "default"))
 
         # Compute the 11 engineered features using the rolling buffer
-        feature_vector = _compute_features(temperature, humidity, sensor_id)
+        feature_vector = _compute_features(temperature, humidity, sensor_id, data.get("timestamp"))
 
         X        = feature_vector.reshape(1, -1)
         X_scaled = scaler.transform(X)

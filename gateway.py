@@ -7,7 +7,7 @@ import paho.mqtt.client as mqtt
 # MQTT CONFIGURATION
 # ============================================================
 
-MQTT_BROKER = "10.160.14.235"
+MQTT_BROKER = "10.194.253.235"
 MQTT_PORT = 1883
 MQTT_TOPIC = "medical/sensor/data"
 
@@ -16,7 +16,7 @@ MQTT_TOPIC = "medical/sensor/data"
 # FABRIC BACKEND CONFIGURATION
 # ============================================================
 
-BACKEND_URL = "http://10.144.57.204:5000/api/iot/temperature"
+BACKEND_URL = "http://10.194.253.204:5000/api/iot/temperature"
 
 # Maximum time to wait for the backend
 BACKEND_TIMEOUT = 10
@@ -148,7 +148,7 @@ def validate_sensor_data(data):
 
         print(
             f"Allowed physical range: "
-            f"{MIN_PHYSICAL_TEMP}°C to {MAX_PHYSICAL_TEMP}°C"
+            f"{MIN_PHYSICAL_TEMP}Â°C to {MAX_PHYSICAL_TEMP}Â°C"
         )
 
         return False
@@ -246,6 +246,7 @@ def send_to_fabric_backend(data):
     # --------------------------------------------------------
 
     payload = {
+        "batchId": data.get("batchId") or data.get("batch_id") or "BATCH_1792760493",
         "sensor_id": data["sensor_id"],
         "temperature": data["temperature"],
         "humidity": data["humidity"],
@@ -441,15 +442,15 @@ def get_ml_prediction(data):
     Send the sensor reading to the ML anomaly detection service (v2.0.0).
 
     The retrained Isolation Forest model accepts only:
-      - temperature  : float (°C) — from the physical sensor
-      - humidity     : float (%)  — from the physical sensor
-      - sensor_id    : str        — used for per-sensor rolling window context
+      - temperature  : float (Â°C) â€” from the physical sensor
+      - humidity     : float (%)  â€” from the physical sensor
+      - sensor_id    : str        â€” used for per-sensor rolling window context
 
     The ML service maintains its own rolling history buffer per sensor_id
     and computes all engineered features (rolling mean/std, rate of change,
     deviation, hour of day) internally before running inference.
 
-    ML failure must never block the existing gateway → Fabric flow.
+    ML failure must never block the existing gateway â†’ Fabric flow.
     """
 
     try:
@@ -461,6 +462,7 @@ def get_ml_prediction(data):
             "temperature": temperature,
             "humidity":    humidity,
             "sensor_id":   sensor_id,
+            "timestamp":   data.get("timestamp"),
         }
 
         print("\n>>> Sending reading to ML API...")
@@ -602,13 +604,13 @@ def on_message(client, userdata, msg):
         if fabric_success:
 
             print(
-                "\n>>> Gateway → Backend → Fabric: SUCCESS"
+                "\n>>> Gateway â†’ Backend â†’ Fabric: SUCCESS"
             )
 
         else:
 
             print(
-                "\n>>> Gateway → Backend → Fabric: FAILED"
+                "\n>>> Gateway â†’ Backend â†’ Fabric: FAILED"
             )
 
 
@@ -712,12 +714,12 @@ def main():
 
     print(
         f"Medical temperature range: "
-        f"{MIN_TEMP}°C - {MAX_TEMP}°C"
+        f"{MIN_TEMP}Â°C - {MAX_TEMP}Â°C"
     )
 
     print(
         f"Physical temperature range: "
-        f"{MIN_PHYSICAL_TEMP}°C - {MAX_PHYSICAL_TEMP}°C"
+        f"{MIN_PHYSICAL_TEMP}Â°C - {MAX_PHYSICAL_TEMP}Â°C"
     )
 
 

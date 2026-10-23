@@ -1,10 +1,22 @@
 # Dependencies
 node_modules/
 venv/
+.venv/
+ml-service/.venv/
 __pycache__/
 
-# Environment variables
+# Environment variables & secrets
 .env
+backend/.env
+*.env
+
+# Private Hardware Credentials & Code Backups
+Basic_BC_Project_Code_copy_*/
+secrets.h
+
+# Local development artifacts & backups
+backups/
+coldchain-status*.txt
 
 # Build outputs
 dist/

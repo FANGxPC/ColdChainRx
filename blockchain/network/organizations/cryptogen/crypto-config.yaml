@@ -1,0 +1,39 @@
+# ColdChainRx - Fabric Organization Configuration
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: coldchainrx.com
+    Specs:
+      - Hostname: orderer
+
+PeerOrgs:
+
+  - Name: Manufacturer
+    Domain: manufacturer.coldchainrx.com
+    EnableNodeOUs: true
+
+    Template:
+      Count: 1
+
+    Users:
+      Count: 1
+
+  - Name: Distributor
+    Domain: distributor.coldchainrx.com
+    EnableNodeOUs: true
+
+    Template:
+      Count: 1
+
+    Users:
+      Count: 1
+
+  - Name: Pharmacy
+    Domain: pharmacy.coldchainrx.com
+    EnableNodeOUs: true
+
+    Template:
+      Count: 1
+
+    Users:
+      Count: 1

@@ -1,0 +1,12 @@
+{
+  "name": "coldchainrx-caliper-benchmarks",
+  "version": "1.0.0",
+  "description": "Hyperledger Caliper Benchmark Suite for ColdChainRx Blockchain",
+  "scripts": {
+    "benchmark": "node run_benchmarks.js",
+    "caliper": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/benchmarkConfig.yaml"
+  },
+  "dependencies": {
+    "@hyperledger/caliper-cli": "^0.5.0"
+  }
+}

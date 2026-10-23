@@ -1,0 +1,42 @@
+test:
+  name: ColdChainRx-Performance-Benchmark
+  description: Benchmark evaluation for Hyperledger Fabric ColdChainRx Chaincode transactions
+  workers:
+    number: 2
+
+  rounds:
+    - label: CreateBatch-Benchmark
+      description: Measure throughput and latency when initializing new drug batches
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 25
+      workload:
+        module: workload/createBatch.js
+        arguments:
+          contractId: coldchainrx
+
+    - label: LogTemperature-IoT-Write-Benchmark
+      description: Measure high-frequency IoT sensor telemetry ingestion rate
+      txNumber: 250
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
+      workload:
+        module: workload/logTemperature.js
+        arguments:
+          contractId: coldchainrx
+
+    - label: QueryBatch-Read-Benchmark
+      description: Measure read throughput and latency for consumer QR code lookups
+      txNumber: 500
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 100
+      workload:
+        module: workload/queryBatch.js
+        arguments:
+          contractId: coldchainrx

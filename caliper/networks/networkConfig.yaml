@@ -1,0 +1,72 @@
+name: ColdChainRx-Fabric-Network
+version: "2.0.0"
+
+caliper:
+  blockchain: fabric
+
+channels:
+  - channelName: coldchainchannel
+    contracts:
+      - id: coldchainrx
+        version: "1.0"
+
+organizations:
+  - mspid: ManufacturerMSP
+    identities:
+      certificates:
+        - name: "User1"
+          clientPrivateKey:
+            path: "../blockchain/network/organizations/peerOrganizations/manufacturer.coldchainrx.com/users/User1@manufacturer.coldchainrx.com/msp/keystore/priv_sk"
+          clientSignedCert:
+            path: "../blockchain/network/organizations/peerOrganizations/manufacturer.coldchainrx.com/users/User1@manufacturer.coldchainrx.com/msp/signcerts/User1@manufacturer.coldchainrx.com-cert.pem"
+    connectionProfile:
+      path: "../blockchain/network/organizations/peerOrganizations/manufacturer.coldchainrx.com/connection-manufacturer.json"
+      discover: false
+
+  - mspid: DistributorMSP
+    identities:
+      certificates:
+        - name: "User1"
+          clientPrivateKey:
+            path: "../blockchain/network/organizations/peerOrganizations/distributor.coldchainrx.com/users/User1@distributor.coldchainrx.com/msp/keystore/priv_sk"
+          clientSignedCert:
+            path: "../blockchain/network/organizations/peerOrganizations/distributor.coldchainrx.com/users/User1@distributor.coldchainrx.com/msp/signcerts/User1@distributor.coldchainrx.com-cert.pem"
+
+  - mspid: PharmacyMSP
+    identities:
+      certificates:
+        - name: "User1"
+          clientPrivateKey:
+            path: "../blockchain/network/organizations/peerOrganizations/pharmacy.coldchainrx.com/users/User1@pharmacy.coldchainrx.com/msp/keystore/priv_sk"
+          clientSignedCert:
+            path: "../blockchain/network/organizations/peerOrganizations/pharmacy.coldchainrx.com/users/User1@pharmacy.coldchainrx.com/msp/signcerts/User1@pharmacy.coldchainrx.com-cert.pem"
+
+peers:
+  peer0.manufacturer.coldchainrx.com:
+    url: grpc://localhost:7051
+    tlsCACerts:
+      path: "../blockchain/network/organizations/peerOrganizations/manufacturer.coldchainrx.com/peers/peer0.manufacturer.coldchainrx.com/tls/ca.crt"
+    grpcOptions:
+      ssl-target-name-override: peer0.manufacturer.coldchainrx.com
+
+  peer0.distributor.coldchainrx.com:
+    url: grpc://localhost:8051
+    tlsCACerts:
+      path: "../blockchain/network/organizations/peerOrganizations/distributor.coldchainrx.com/peers/peer0.distributor.coldchainrx.com/tls/ca.crt"
+    grpcOptions:
+      ssl-target-name-override: peer0.distributor.coldchainrx.com
+
+  peer0.pharmacy.coldchainrx.com:
+    url: grpc://localhost:9451
+    tlsCACerts:
+      path: "../blockchain/network/organizations/peerOrganizations/pharmacy.coldchainrx.com/peers/peer0.pharmacy.coldchainrx.com/tls/ca.crt"
+    grpcOptions:
+      ssl-target-name-override: peer0.pharmacy.coldchainrx.com
+
+orderers:
+  orderer.coldchainrx.com:
+    url: grpc://localhost:7050
+    tlsCACerts:
+      path: "../blockchain/network/organizations/ordererOrganizations/coldchainrx.com/orderers/orderer.coldchainrx.com/tls/ca.crt"
+    grpcOptions:
+      ssl-target-name-override: orderer.coldchainrx.com

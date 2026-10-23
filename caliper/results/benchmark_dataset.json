@@ -1,0 +1,54 @@
+[
+  {
+    "roundName": "CreateBatch (State Initialization)",
+    "type": "WRITE",
+    "totalTx": 100,
+    "successfulTx": 100,
+    "failedTx": 0,
+    "durationSeconds": 4.28,
+    "throughputTps": 23.4,
+    "minLatencyMs": 27.03,
+    "avgLatencyMs": 42.5,
+    "maxLatencyMs": 62.83,
+    "p95LatencyMs": 55.75
+  },
+  {
+    "roundName": "LogTemperature (IoT Sensor Telemetry Write)",
+    "type": "WRITE",
+    "totalTx": 200,
+    "successfulTx": 200,
+    "failedTx": 0,
+    "durationSeconds": 4.26,
+    "throughputTps": 46.9,
+    "minLatencyMs": 23.04,
+    "avgLatencyMs": 35.6,
+    "maxLatencyMs": 56.85,
+    "p95LatencyMs": 46.47
+  },
+  {
+    "roundName": "QueryBatch (Consumer QR Code Verification)",
+    "type": "READ",
+    "totalTx": 300,
+    "successfulTx": 300,
+    "failedTx": 0,
+    "durationSeconds": 4.22,
+    "throughputTps": 71.1,
+    "minLatencyMs": 6,
+    "avgLatencyMs": 12.3,
+    "maxLatencyMs": 27.48,
+    "p95LatencyMs": 17.93
+  },
+  {
+    "roundName": "GetBatchHistory (Full Provenance Audit Trail)",
+    "type": "READ",
+    "totalTx": 150,
+    "successfulTx": 150,
+    "failedTx": 0,
+    "durationSeconds": 2.15,
+    "throughputTps": 69.9,
+    "minLatencyMs": 10.02,
+    "avgLatencyMs": 18.4,
+    "maxLatencyMs": 35.06,
+    "p95LatencyMs": 25.28
+  }
+]

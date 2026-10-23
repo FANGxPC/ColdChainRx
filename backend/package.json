@@ -1,23 +1,38 @@
 {
-  "name": "backend",
+  "name": "coldchainrx-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "ColdChainRx Backend Services - Express Web Proxy & Hyperledger Fabric IoT Gateway",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:proxy": "node server.js",
+    "start:fabric": "node src/server.js",
+    "dev:fabric": "node --watch src/server.js",
+    "test:esp32": "node test_esp32_simulator.js",
+    "test:mqtt": "node test_mqtt_simulator.js",
+    "test:security": "node test_security_offchain.js"
   },
-  "keywords": [],
+  "keywords": [
+    "blockchain",
+    "hyperledger-fabric",
+    "coldchain",
+    "iot",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@grpc/grpc-js": "^1.9.13",
+    "@hyperledger/fabric-gateway": "^1.4.0",
+    "aedes": "^1.2.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
+    "express": "^4.18.2",
     "express-rate-limit": "^8.7.1",
     "helmet": "^8.3.0",
     "morgan": "^1.12.1",
+    "mqtt": "^5.16.1",
     "qrcode": "^1.5.4"
   }
 }

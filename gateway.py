@@ -1,6 +1,20 @@
 import json
+import os
 import requests
 import paho.mqtt.client as mqtt
+
+
+# ============================================================
+# ENVIRONMENT - load shared .env
+# ============================================================
+# Only FABRIC_BACKEND_URL ever needs updating (when Swagata
+# restarts his Cloudflare Tunnel). Edit the root .env file.
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
 
 
 # ============================================================
@@ -16,7 +30,13 @@ MQTT_TOPIC = "medical/sensor/data"
 # FABRIC BACKEND CONFIGURATION
 # ============================================================
 
-BACKEND_URL = "http://10.194.253.204:5000/api/iot/temperature"
+# Reads FABRIC_BACKEND_URL from .env; falls back to same-hotspot IP
+_FABRIC_BASE = os.getenv(
+    "FABRIC_BACKEND_URL",
+    "http://10.194.253.204:5000"
+).rstrip("/")
+
+BACKEND_URL = f"{_FABRIC_BASE}/api/iot/temperature"
 
 # Maximum time to wait for the backend
 BACKEND_TIMEOUT = 10

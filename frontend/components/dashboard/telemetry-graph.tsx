@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { Activity } from "lucide-react"
+import { useMemo, useState, useEffect } from "react"
+import { Activity, Wifi, WifiOff } from "lucide-react"
 import { telemetrySeries, SAFE_MIN, SAFE_MAX } from "@/lib/mock-data"
 
 const W = 760
@@ -11,9 +11,106 @@ const PAD_R = 16
 const PAD_T = 16
 const PAD_B = 28
 
+const API_BASE = "http://localhost:3001"
+
+// Well-known live batch IDs from Omkar's sensor network
+const LIVE_BATCH_IDS = ["BATCH_1792760493"]
+
+// Colours for each series line (matches the mock-data palette)
+const SERIES_COLORS = ["var(--chart-1)", "var(--chart-3)", "var(--chart-5)", "var(--chart-4)"]
+
+type Series = {
+  id: string
+  color: string
+  values: number[]
+}
+
+// ---------------------------------------------------------------------------
+// Build a series array from a live batch response
+// ---------------------------------------------------------------------------
+function batchToSeries(data: any, color: string): Series {
+  const values = (data.readings ?? []).map((r: any) => r.temp as number)
+  return { id: data.batchId, color, values }
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 export function TelemetryGraph() {
-  const { labels, lines } = telemetrySeries
   const [hover, setHover] = useState<number | null>(null)
+  const [liveLines, setLiveLines] = useState<Series[] | null>(null)
+  const [isLive, setIsLive] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
+
+  // ---------------------------------------------------------------------------
+  // Fetch live batches from the Fabric proxy on mount (and every 30 s)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchLiveData() {
+      try {
+        const results = await Promise.all(
+          LIVE_BATCH_IDS.map((id) =>
+            fetch(`${API_BASE}/api/fabric/batch/${encodeURIComponent(id)}`).then((r) =>
+              r.ok ? r.json() : null
+            )
+          )
+        )
+
+        if (cancelled) return
+
+        const liveSeries: Series[] = []
+        let anyLive = false
+
+        results.forEach((json, idx) => {
+          if (json?.success && !json._mock && json.data?.readings?.length) {
+            liveSeries.push(batchToSeries(json.data, SERIES_COLORS[idx % SERIES_COLORS.length]))
+            anyLive = true
+          }
+        })
+
+        if (liveSeries.length > 0) {
+          setLiveLines(liveSeries)
+          setIsLive(anyLive)
+          setFetchError(false)
+        } else {
+          // All responses were mocks or empty – fall back to static demo data
+          setLiveLines(null)
+          setIsLive(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setFetchError(true)
+          setLiveLines(null)
+          setIsLive(false)
+        }
+      }
+    }
+
+    fetchLiveData()
+    const interval = setInterval(fetchLiveData, 30_000) // refresh every 30 s
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  // ---------------------------------------------------------------------------
+  // Active series: live data if available, otherwise the static mock telemetry
+  // ---------------------------------------------------------------------------
+  const { labels, lines } = useMemo(() => {
+    if (liveLines && liveLines.length > 0) {
+      // Build a label array matching the longest series length
+      const maxLen = Math.max(...liveLines.map((l) => l.values.length))
+      const liveLabels = Array.from({ length: maxLen }, (_, i) => {
+        const h = i % 24
+        return `${String(h).padStart(2, "0")}:00`
+      })
+      return { labels: liveLabels, lines: liveLines }
+    }
+    return { labels: telemetrySeries.labels, lines: telemetrySeries.lines }
+  }, [liveLines])
 
   const { domainMin, domainMax } = useMemo(() => {
     const all = lines.flatMap((l) => l.values)
@@ -22,9 +119,10 @@ export function TelemetryGraph() {
       domainMax: Math.max(SAFE_MAX + 2, ...all),
     }
   }, [lines])
+
   const range = domainMax - domainMin || 1
 
-  const x = (i: number) => PAD_L + (i / (labels.length - 1)) * (W - PAD_L - PAD_R)
+  const x = (i: number) => PAD_L + (i / Math.max(labels.length - 1, 1)) * (W - PAD_L - PAD_R)
   const y = (v: number) => PAD_T + (1 - (v - domainMin) / range) * (H - PAD_T - PAD_B)
 
   const ticks = [domainMin, (domainMin + domainMax) / 2, SAFE_MAX, domainMax].filter(
@@ -40,10 +138,27 @@ export function TelemetryGraph() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-foreground">Real-Time Telemetry</h2>
-            <p className="text-xs text-muted-foreground">Live temperature across active shipments (°C)</p>
+            <p className="text-xs text-muted-foreground">
+              {isLive ? "Live readings from Fabric ledger (°C)" : "Temperature across active shipments (°C)"}
+            </p>
           </div>
         </div>
+
         <div className="flex flex-wrap items-center gap-3">
+          {/* Live / Demo status indicator */}
+          {isLive ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-safe/12 px-2.5 py-1 text-xs font-medium text-safe">
+              <Wifi className="size-3" aria-hidden />
+              Live Ledger
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              <WifiOff className="size-3" aria-hidden />
+              {fetchError ? "Ledger Offline" : "Demo Data"}
+            </span>
+          )}
+
+          {/* Series legend */}
           {lines.map((l) => (
             <span key={l.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="size-2.5 rounded-full" style={{ background: l.color }} />
@@ -93,7 +208,9 @@ export function TelemetryGraph() {
 
         {/* Lines */}
         {lines.map((l) => {
-          const d = l.values.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ")
+          const d = l.values
+            .map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`)
+            .join(" ")
           return (
             <path
               key={l.id}
@@ -125,9 +242,11 @@ export function TelemetryGraph() {
         {hover !== null && (
           <g>
             <line x1={x(hover)} y1={PAD_T} x2={x(hover)} y2={H - PAD_B} stroke="var(--foreground)" strokeWidth="1" opacity="0.2" />
-            {lines.map((l) => (
-              <circle key={l.id} cx={x(hover)} cy={y(l.values[hover])} r="3.5" fill={l.color} stroke="var(--card)" strokeWidth="1.5" />
-            ))}
+            {lines.map((l) =>
+              l.values[hover] !== undefined ? (
+                <circle key={l.id} cx={x(hover)} cy={y(l.values[hover])} r="3.5" fill={l.color} stroke="var(--card)" strokeWidth="1.5" />
+              ) : null
+            )}
           </g>
         )}
       </svg>
@@ -135,12 +254,14 @@ export function TelemetryGraph() {
       {hover !== null && (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-secondary/60 px-3 py-2 text-xs">
           <span className="font-medium text-foreground">{labels[hover]}</span>
-          {lines.map((l) => (
-            <span key={l.id} className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <span className="size-2 rounded-full" style={{ background: l.color }} />
-              <span className="font-mono">{l.values[hover].toFixed(1)}°C</span>
-            </span>
-          ))}
+          {lines.map((l) =>
+            l.values[hover] !== undefined ? (
+              <span key={l.id} className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <span className="size-2 rounded-full" style={{ background: l.color }} />
+                <span className="font-mono">{l.values[hover].toFixed(1)}°C</span>
+              </span>
+            ) : null
+          )}
         </div>
       )}
     </div>

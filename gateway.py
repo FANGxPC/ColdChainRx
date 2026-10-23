@@ -461,6 +461,11 @@ def get_ml_prediction(data):
             "temperature": temperature,
             "humidity":    humidity,
             "sensor_id":   sensor_id,
+            # Forward the sensor's own ISO-8601 timestamp so the ML service
+            # extracts hour_of_day from the real reading time, not the server clock.
+            # Falls back gracefully to datetime.now().hour inside the ML service
+            # when the field is absent.
+            "timestamp":   data.get("timestamp"),
         }
 
         print("\n>>> Sending reading to ML API...")

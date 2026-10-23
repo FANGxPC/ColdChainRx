@@ -21,7 +21,7 @@ except ImportError:
 # MQTT CONFIGURATION
 # ============================================================
 
-MQTT_BROKER = "10.194.253.235"
+MQTT_BROKER = os.getenv("MQTT_BROKER", "127.0.0.1")
 MQTT_PORT = 1883
 MQTT_TOPIC = "medical/sensor/data"
 

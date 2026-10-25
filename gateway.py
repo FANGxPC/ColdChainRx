@@ -24,6 +24,7 @@ except ImportError:
 MQTT_BROKER = os.getenv("MQTT_BROKER", "127.0.0.1")
 MQTT_PORT = 1883
 MQTT_TOPIC = "medical/sensor/data"
+MQTT_TOPIC_ALT = "coldchain/telemetry"
 
 
 # ============================================================
@@ -76,11 +77,7 @@ def validate_sensor_data(data):
     required_fields = [
         "sensor_id",
         "temperature",
-        "humidity",
-        "min_temp",
-        "max_temp",
-        "timestamp",
-        "status"
+        "humidity"
     ]
 
     for field in required_fields:
@@ -138,6 +135,20 @@ def validate_sensor_data(data):
 
         return False
 
+
+    # --------------------------------------------------------
+    # 4b. Ensure optional fields have defaults
+    # --------------------------------------------------------
+    if not data.get("timestamp"):
+        from datetime import datetime
+        data["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if "min_temp" not in data:
+        data["min_temp"] = MIN_TEMP
+    if "max_temp" not in data:
+        data["max_temp"] = MAX_TEMP
+    if not data.get("status"):
+        t = data["temperature"]
+        data["status"] = "NORMAL" if (isinstance(t, (int, float)) and MIN_TEMP <= t <= MAX_TEMP) else "EXCURSION"
 
     # --------------------------------------------------------
     # 5. Check temperature is numeric
@@ -266,13 +277,14 @@ def send_to_fabric_backend(data):
     # --------------------------------------------------------
 
     payload = {
-        "batchId": data.get("batchId") or data.get("batch_id") or "BATCH_1792760493",
         "sensor_id": data["sensor_id"],
         "temperature": data["temperature"],
         "humidity": data["humidity"],
         "timestamp": data["timestamp"],
         "status": data["status"]
     }
+    if data.get("batchId") or data.get("batch_id"):
+        payload["batchId"] = data.get("batchId") or data.get("batch_id")
 
     print(
         "Backend URL:",

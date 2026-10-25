@@ -169,7 +169,7 @@ function mapSwagataBatch(raw) {
     return {
       time: new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       temp,
-      humidity: MEAN_HUMIDITY, // ledger does not persist humidity; use training-set mean
+      humidity: (log.humidity !== undefined && log.humidity !== null) ? log.humidity : MEAN_HUMIDITY,
       location: log.reporter || 'Unknown Sensor',
       hop: 'Ledger recorded',
       status: readingStatus,
@@ -202,6 +202,71 @@ function mapSwagataBatch(raw) {
 // NEW  GET /api/fabric/batch/:id  – Proxy to Swagata's Hyperledger Fabric node
 //      This is the recommended single source of truth for the UI.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Device & Batch Assignment Proxy Routes (Hyperledger Fabric)
+// ---------------------------------------------------------------------------
+app.post('/api/fabric/batch/create', async (req, res) => {
+  try {
+    const upstream = await fetch(`${SWAGATA_BASE}/api/batch/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
+    const data = await upstream.json();
+    return res.status(upstream.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/fabric/device/assign', async (req, res) => {
+  try {
+    const upstream = await fetch(`${SWAGATA_BASE}/api/device/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
+    const data = await upstream.json();
+    return res.status(upstream.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/fabric/device/:deviceId/batch', async (req, res) => {
+  try {
+    const upstream = await fetch(`${SWAGATA_BASE}/api/device/${encodeURIComponent(req.params.deviceId)}/batch`);
+    const data = await upstream.json();
+    return res.status(upstream.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/fabric/device/unassign', async (req, res) => {
+  try {
+    const upstream = await fetch(`${SWAGATA_BASE}/api/device/unassign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
+    const data = await upstream.json();
+    return res.status(upstream.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/fabric/batch/:id/history', async (req, res) => {
+  try {
+    const upstream = await fetch(`${SWAGATA_BASE}/api/batch/${encodeURIComponent(req.params.id)}/history`);
+    const data = await upstream.json();
+    return res.status(upstream.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/fabric/batch/:id', validateBatchId, async (req, res) => {
   const { id } = req.params;
 

@@ -22,12 +22,24 @@ type Batch struct {
 	TemperatureLogs []TemperatureLog `json:"temperatureLogs"`
 	ExcursionAlert  bool             `json:"excursionAlert"`
 	Status          string           `json:"status"` // e.g., "Manufactured", "InTransit", "Delivered"
+	MinTemp         float64          `json:"minTemp"`
+	MaxTemp         float64          `json:"maxTemp"`
+	AssignedDevice  string           `json:"assignedDevice"`
 }
 
-// TemperatureLog represents a single temperature reading from an IoT sensor
+// DeviceAssignment represents a binding between an IoT device box and a batch
+type DeviceAssignment struct {
+	DeviceID   string `json:"deviceId"`
+	BatchID    string `json:"batchId"`
+	AssignedAt string `json:"assignedAt"`
+	Active     bool   `json:"active"`
+}
+
+// TemperatureLog represents a single temperature and humidity reading from an IoT sensor
 type TemperatureLog struct {
 	Timestamp   string  `json:"timestamp"`
 	Temperature float64 `json:"temperature"`
+	Humidity    float64 `json:"humidity"`
 	Reporter    string  `json:"reporter"`
 }
 
@@ -52,14 +64,23 @@ type PaginatedHistoryResult struct {
 const ExcursionThresholdHigh = 8.0
 const ExcursionThresholdLow = 2.0
 
-// CreateBatch initializes a new batch in the ledger
+// CreateBatch initializes a new batch in the ledger with default thresholds (2.0C - 8.0C)
 func (s *SmartContract) CreateBatch(ctx contractapi.TransactionContextInterface, id string, drugName string, manufacturer string) error {
+	return s.CreateBatchWithThresholds(ctx, id, drugName, manufacturer, ExcursionThresholdLow, ExcursionThresholdHigh)
+}
+
+// CreateBatchWithThresholds initializes a new batch with custom temperature excursion thresholds
+func (s *SmartContract) CreateBatchWithThresholds(ctx contractapi.TransactionContextInterface, id string, drugName string, manufacturer string, minTemp float64, maxTemp float64) error {
 	exists, err := s.BatchExists(ctx, id)
 	if err != nil {
 		return err
 	}
 	if exists {
 		return fmt.Errorf("the batch %s already exists", id)
+	}
+
+	if minTemp >= maxTemp {
+		return fmt.Errorf("invalid temperature thresholds: minTemp (%.2f) must be less than maxTemp (%.2f)", minTemp, maxTemp)
 	}
 
 	batch := Batch{
@@ -70,6 +91,9 @@ func (s *SmartContract) CreateBatch(ctx contractapi.TransactionContextInterface,
 		TemperatureLogs: []TemperatureLog{},
 		ExcursionAlert:  false,
 		Status:          "Manufactured",
+		MinTemp:         minTemp,
+		MaxTemp:         maxTemp,
+		AssignedDevice:  "",
 	}
 
 	batchJSON, err := json.Marshal(batch)
@@ -78,6 +102,120 @@ func (s *SmartContract) CreateBatch(ctx contractapi.TransactionContextInterface,
 	}
 
 	return ctx.GetStub().PutState(id, batchJSON)
+}
+
+// SetBatchThresholds updates the temperature excursion thresholds for a batch
+func (s *SmartContract) SetBatchThresholds(ctx contractapi.TransactionContextInterface, id string, minTemp float64, maxTemp float64) error {
+	if minTemp >= maxTemp {
+		return fmt.Errorf("invalid temperature thresholds: minTemp (%.2f) must be less than maxTemp (%.2f)", minTemp, maxTemp)
+	}
+
+	batch, err := s.QueryBatch(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	batch.MinTemp = minTemp
+	batch.MaxTemp = maxTemp
+
+	batchJSON, err := json.Marshal(batch)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(id, batchJSON)
+}
+
+// AssignDeviceToBatch binds an IoT sensor box / device to an existing pharmaceutical batch
+func (s *SmartContract) AssignDeviceToBatch(ctx contractapi.TransactionContextInterface, deviceID string, batchID string, timestamp string) error {
+	if deviceID == "" || batchID == "" {
+		return fmt.Errorf("deviceId and batchId cannot be empty")
+	}
+
+	batch, err := s.QueryBatch(ctx, batchID)
+	if err != nil {
+		return fmt.Errorf("cannot assign device: %v", err)
+	}
+
+	// Update batch with assigned device
+	batch.AssignedDevice = deviceID
+	batchJSON, err := json.Marshal(batch)
+	if err != nil {
+		return err
+	}
+	if err := ctx.GetStub().PutState(batchID, batchJSON); err != nil {
+		return err
+	}
+
+	// Record the device assignment mapping: DEVICE_<deviceID>
+	assignment := DeviceAssignment{
+		DeviceID:   deviceID,
+		BatchID:    batchID,
+		AssignedAt: timestamp,
+		Active:     true,
+	}
+
+	assignmentJSON, err := json.Marshal(assignment)
+	if err != nil {
+		return err
+	}
+
+	deviceKey := fmt.Sprintf("DEVICE_%s", deviceID)
+	return ctx.GetStub().PutState(deviceKey, assignmentJSON)
+}
+
+// GetDeviceAssignment retrieves the current batch assignment for an IoT sensor device
+func (s *SmartContract) GetDeviceAssignment(ctx contractapi.TransactionContextInterface, deviceID string) (*DeviceAssignment, error) {
+	if deviceID == "" {
+		return nil, fmt.Errorf("deviceId cannot be empty")
+	}
+
+	deviceKey := fmt.Sprintf("DEVICE_%s", deviceID)
+	assignmentJSON, err := ctx.GetStub().GetState(deviceKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read device assignment: %v", err)
+	}
+	if assignmentJSON == nil {
+		return nil, fmt.Errorf("device %s is not assigned to any batch", deviceID)
+	}
+
+	var assignment DeviceAssignment
+	if err := json.Unmarshal(assignmentJSON, &assignment); err != nil {
+		return nil, err
+	}
+
+	return &assignment, nil
+}
+
+// UnassignDevice deactivates the assignment for an IoT sensor device
+func (s *SmartContract) UnassignDevice(ctx contractapi.TransactionContextInterface, deviceID string) error {
+	assignment, err := s.GetDeviceAssignment(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	assignment.Active = false
+	assignmentJSON, err := json.Marshal(assignment)
+	if err != nil {
+		return err
+	}
+
+	deviceKey := fmt.Sprintf("DEVICE_%s", deviceID)
+	if err := ctx.GetStub().PutState(deviceKey, assignmentJSON); err != nil {
+		return err
+	}
+
+	// Also clear AssignedDevice on the batch if it matches
+	batch, err := s.QueryBatch(ctx, assignment.BatchID)
+	if err == nil && batch.AssignedDevice == deviceID {
+		batch.AssignedDevice = ""
+		batchJSON, err := json.Marshal(batch)
+		if err == nil {
+			_ = ctx.GetStub().PutState(assignment.BatchID, batchJSON)
+		}
+	}
+
+	return nil
 }
 
 // QueryBatch returns the batch stored in the world state with given id
@@ -117,8 +255,8 @@ func (s *SmartContract) TransferCustody(ctx contractapi.TransactionContextInterf
 	return ctx.GetStub().PutState(id, batchJSON)
 }
 
-// LogTemperature appends a temperature reading to the batch and flags excursions
-func (s *SmartContract) LogTemperature(ctx contractapi.TransactionContextInterface, id string, timestamp string, temperature float64, reporter string) error {
+// LogTelemetry appends a temperature and humidity reading to the batch and flags excursions
+func (s *SmartContract) LogTelemetry(ctx contractapi.TransactionContextInterface, id string, timestamp string, temperature float64, humidity float64, reporter string) error {
 	batch, err := s.QueryBatch(ctx, id)
 	if err != nil {
 		return err
@@ -127,13 +265,21 @@ func (s *SmartContract) LogTemperature(ctx contractapi.TransactionContextInterfa
 	logEntry := TemperatureLog{
 		Timestamp:   timestamp,
 		Temperature: temperature,
+		Humidity:    humidity,
 		Reporter:    reporter,
 	}
 
 	batch.TemperatureLogs = append(batch.TemperatureLogs, logEntry)
 
-	// Check for temperature excursion (e.g., must be between 2C and 8C)
-	if temperature > ExcursionThresholdHigh || temperature < ExcursionThresholdLow {
+	// Check for temperature excursion against batch thresholds (or default 2C - 8C)
+	minT := batch.MinTemp
+	maxT := batch.MaxTemp
+	if minT == 0 && maxT == 0 {
+		minT = ExcursionThresholdLow
+		maxT = ExcursionThresholdHigh
+	}
+
+	if temperature > maxT || temperature < minT {
 		batch.ExcursionAlert = true
 	}
 
@@ -143,6 +289,24 @@ func (s *SmartContract) LogTemperature(ctx contractapi.TransactionContextInterfa
 	}
 
 	return ctx.GetStub().PutState(id, batchJSON)
+}
+
+// LogTemperature appends a temperature reading (backward-compatible wrapper around LogTelemetry)
+func (s *SmartContract) LogTemperature(ctx contractapi.TransactionContextInterface, id string, timestamp string, temperature float64, reporter string) error {
+	return s.LogTelemetry(ctx, id, timestamp, temperature, 0.0, reporter)
+}
+
+// LogDeviceTelemetry allows an IoT sensor box to log readings using only its deviceID (resolves batch internally)
+func (s *SmartContract) LogDeviceTelemetry(ctx contractapi.TransactionContextInterface, deviceID string, timestamp string, temperature float64, humidity float64) error {
+	assignment, err := s.GetDeviceAssignment(ctx, deviceID)
+	if err != nil {
+		return fmt.Errorf("cannot log telemetry: %v", err)
+	}
+	if !assignment.Active {
+		return fmt.Errorf("cannot log telemetry: device %s is currently unassigned", deviceID)
+	}
+
+	return s.LogTelemetry(ctx, assignment.BatchID, timestamp, temperature, humidity, deviceID)
 }
 
 func (s *SmartContract) fetchHistoryRecords(ctx contractapi.TransactionContextInterface, id string) ([]HistoryQueryResult, error) {

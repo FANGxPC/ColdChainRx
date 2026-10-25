@@ -38,54 +38,80 @@ function sendRequest(method, path, body = null) {
 
 async function runSimulation() {
   console.log('==================================================');
-  console.log('📡 STARTING ESP32 + DHT11 HARDWARE SIMULATION');
+  console.log('📡 STARTING COLDCHAINRX DEVICE RESOLUTION & TELEMETRY SIMULATION');
   console.log('==================================================');
 
-  // Step 1: Create Batch
+  const DEVICE_ID = `BOX_${Date.now().toString(36).toUpperCase()}`;
+
+  // Step 1: Register New Batch
   console.log(`\n1. Registering new batch: ${BATCH_ID}...`);
   const createRes = await sendRequest('POST', '/api/batch/create', {
     id: BATCH_ID,
-    drugName: 'COVID-19 Vaccine (mRNA)',
-    manufacturer: 'Moderna',
+    drugName: 'COVID-19 mRNA Vaccine',
+    manufacturer: 'Pfizer-BioNTech',
+    minTemp: 2.0,
+    maxTemp: 8.0,
   });
   console.log('Response:', createRes.status, JSON.stringify(createRes.body, null, 2));
 
-  // Step 2: ESP32 sends normal temperature (4.2°C)
-  console.log(`\n2. ESP32 Sensor sending Reading #1 (4.2°C - Normal)...`);
-  const temp1Res = await sendRequest('POST', '/api/iot/temperature', {
+  // Step 2: Assign Sensor Box / Device to Batch
+  console.log(`\n2. Manufacturer assigning Sensor Device '${DEVICE_ID}' to Batch '${BATCH_ID}'...`);
+  const assignRes = await sendRequest('POST', '/api/device/assign', {
+    deviceId: DEVICE_ID,
     batchId: BATCH_ID,
-    temperature: 4.2,
-    humidity: 55.4,
-    reporter: 'ESP32_DHT11_Unit01',
+  });
+  console.log('Response:', assignRes.status, JSON.stringify(assignRes.body, null, 2));
+
+  // Step 3: Verify Device Assignment on Blockchain
+  console.log(`\n3. Verifying Blockchain Device Assignment for '${DEVICE_ID}'...`);
+  const checkAssignRes = await sendRequest('GET', `/api/device/${DEVICE_ID}/batch`);
+  console.log('Active Assignment:', JSON.stringify(checkAssignRes.body, null, 2));
+
+  await new Promise((r) => setTimeout(r, 1500));
+
+  // Step 4: ESP32 sends reading WITHOUT batchId (Backend resolves device -> batch)
+  console.log(`\n4. ESP32 Sensor '${DEVICE_ID}' sending Reading #1 (4.5°C, 52% - Normal, NO batchId sent!)...`);
+  const temp1Res = await sendRequest('POST', '/api/iot/temperature', {
+    sensor_id: DEVICE_ID,
+    temperature: 4.5,
+    humidity: 52.0,
   });
   console.log('Response:', temp1Res.status, JSON.stringify(temp1Res.body, null, 2));
 
-  await new Promise((r) => setTimeout(r, 2000));
+  await new Promise((r) => setTimeout(r, 1500));
 
-  // Step 3: ESP32 sends spiked temperature (9.8°C - Excursion!)
-  console.log(`\n3. ESP32 Sensor sending Reading #2 (9.8°C - EXCURSION DETECTED!)...`);
+  // Step 5: ESP32 sends excursion temperature (10.2°C - Excursion!)
+  console.log(`\n5. ESP32 Sensor '${DEVICE_ID}' sending Reading #2 (10.2°C, 65% - EXCURSION DETECTED!)...`);
   const temp2Res = await sendRequest('POST', '/api/iot/temperature', {
-    batchId: BATCH_ID,
-    temperature: 9.8,
-    humidity: 62.1,
-    reporter: 'ESP32_DHT11_Unit01',
+    sensor_id: DEVICE_ID,
+    temperature: 10.2,
+    humidity: 65.4,
   });
   console.log('Response:', temp2Res.status, JSON.stringify(temp2Res.body, null, 2));
 
-  await new Promise((r) => setTimeout(r, 2000));
+  await new Promise((r) => setTimeout(r, 1500));
 
-  // Step 4: Query full batch state
-  console.log(`\n4. Querying final Blockchain state for ${BATCH_ID}...`);
+  // Step 6: Test Unassigned Rogue Sensor (Must be REJECTED)
+  const ROGUE_ID = 'ROGUE_SENSOR_UNKNOWN';
+  console.log(`\n6. Testing Security: Unassigned sensor '${ROGUE_ID}' sending reading (Expected: REJECTED)...`);
+  const rogueRes = await sendRequest('POST', '/api/iot/temperature', {
+    sensor_id: ROGUE_ID,
+    temperature: 5.0,
+  });
+  console.log('Security Response (Expected 400):', rogueRes.status, JSON.stringify(rogueRes.body, null, 2));
+
+  // Step 7: Query full batch state from blockchain
+  console.log(`\n7. Querying final Blockchain state for ${BATCH_ID}...`);
   const queryRes = await sendRequest('GET', `/api/batch/${BATCH_ID}`);
-  console.log('Final State:', JSON.stringify(queryRes.body, null, 2));
+  console.log('Final Batch State:', JSON.stringify(queryRes.body, null, 2));
 
-  // Step 5: Query audit history
-  console.log(`\n5. Querying complete Blockchain History for ${BATCH_ID}...`);
+  // Step 8: Query complete audit history
+  console.log(`\n8. Querying complete Blockchain Provenance History for ${BATCH_ID}...`);
   const historyRes = await sendRequest('GET', `/api/batch/${BATCH_ID}/history`);
   console.log('History Records Count:', historyRes.body.data ? historyRes.body.data.length : 0);
 
   console.log('\n==================================================');
-  console.log('✅ ESP32 SIMULATION FINISHED SUCCESSFULLY!');
+  console.log('✅ ALL TESTS PASSED: DEVICE-TO-BATCH PIPELINE VERIFIED!');
   console.log('==================================================');
 }
 

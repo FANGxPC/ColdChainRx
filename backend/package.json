@@ -4,10 +4,12 @@
   "description": "ColdChainRx Backend Services - Express Web Proxy & Hyperledger Fabric IoT Gateway",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node start_all.js",
+    "start:all": "node start_all.js",
     "start:proxy": "node server.js",
     "start:fabric": "node src/server.js",
     "dev:fabric": "node --watch src/server.js",
+    "tunnel": "..\\bin\\cloudflared.exe tunnel --url http://localhost:5000",
     "test:esp32": "node test_esp32_simulator.js",
     "test:mqtt": "node test_mqtt_simulator.js",
     "test:security": "node test_security_offchain.js"

@@ -87,63 +87,98 @@ async function startMqttService() {
 
 /**
  * Process incoming sensor payload and commit to Fabric Blockchain
+ * Resolves device-to-batch assignment if batchId is not provided.
  */
 async function processTelemetryMessage(payload) {
-  const { batchId, id, sensor_id, temperature, humidity, reporter, timestamp } = payload;
-  const targetId = batchId || id || sensor_id;
+  const { batchId, id, sensor_id, deviceId, temperature, humidity, reporter, timestamp } = payload;
+  const explicitBatchId = batchId || id;
+  const deviceIdentifier = sensor_id || deviceId || reporter;
 
-  if (!targetId || temperature === undefined) {
-    console.warn('[MQTT Ingestion] Ignored payload missing batchId or temperature:', payload);
+  if (temperature === undefined) {
+    console.warn('[MQTT Ingestion] Ignored payload missing temperature:', payload);
     return;
   }
 
   const logTimestamp = timestamp || new Date().toISOString();
-  const reporterId = reporter || sensor_id || 'ESP32_MQTT_Sensor';
+  const reporterId = deviceIdentifier || reporter || 'ESP32_MQTT_Sensor';
   const tempVal = String(temperature);
+  const humVal = humidity !== undefined ? String(humidity) : '0';
 
+  let targetBatchId = explicitBatchId;
   let gateway, client;
   try {
     const conn = await getContract();
     gateway = conn.gateway;
     client = conn.client;
 
-    // Check if batch exists; auto-create if new
-    try {
-      await conn.contract.evaluateTransaction('QueryBatch', targetId);
-    } catch (err) {
-      console.log(`[MQTT Fabric] Batch '${targetId}' not found. Auto-creating on ledger...`);
-      await conn.contract.submitTransaction('CreateBatch', targetId, 'Medical Cold Chain Supply', 'DefaultManufacturer');
+    // 1. Device-to-Batch Resolution: If batchId not provided, resolve via blockchain
+    if (!targetBatchId) {
+      if (!deviceIdentifier) {
+        console.warn('[MQTT Ingestion] Payload missing both batchId and sensor_id. Dropping message:', payload);
+        return;
+      }
+
+      try {
+        const assignmentBytes = await conn.contract.evaluateTransaction('GetDeviceAssignment', String(deviceIdentifier));
+        const assignment = JSON.parse(new TextDecoder().decode(assignmentBytes));
+        if (!assignment || !assignment.active || !assignment.batchId) {
+          console.warn(`[MQTT Ingestion] Device '${deviceIdentifier}' has no active batch assignment. Dropping telemetry.`);
+          return;
+        }
+        targetBatchId = assignment.batchId;
+        console.log(`[MQTT Gateway] Resolved device '${deviceIdentifier}' -> Batch '${targetBatchId}'`);
+      } catch (err) {
+        console.warn(`[MQTT Ingestion] Failed to resolve device '${deviceIdentifier}' on blockchain: ${err.message}. Dropping telemetry.`);
+        return;
+      }
+    } else {
+      // If batchId was provided, ensure target batch exists on blockchain
+      try {
+        await conn.contract.evaluateTransaction('QueryBatch', String(targetBatchId));
+      } catch (err) {
+        console.warn(`[MQTT Ingestion] Batch '${targetBatchId}' does not exist on blockchain. Dropping telemetry.`);
+        return;
+      }
     }
 
-    // Submit temperature log to Fabric
-    console.log(`[MQTT Fabric] Submitting LogTemperature for ${targetId}: ${tempVal}°C at ${logTimestamp}`);
-    await conn.contract.submitTransaction('LogTemperature', targetId, logTimestamp, tempVal, reporterId);
+    // 2. Submit telemetry to Fabric using LogTelemetry (or fallback to LogTemperature)
+    console.log(`[MQTT Fabric] Submitting LogTelemetry for ${targetBatchId}: ${tempVal}°C, ${humVal}% at ${logTimestamp} (Device: ${reporterId})`);
+    try {
+      await conn.contract.submitTransaction('LogTelemetry', targetBatchId, logTimestamp, tempVal, humVal, reporterId);
+    } catch (_) {
+      await conn.contract.submitTransaction('LogTemperature', targetBatchId, logTimestamp, tempVal, reporterId);
+    }
 
-    // Query state to check for excursion
-    const resultBytes = await conn.contract.evaluateTransaction('QueryBatch', targetId);
+    // 3. Query state to check for excursion
+    const resultBytes = await conn.contract.evaluateTransaction('QueryBatch', targetBatchId);
     const updatedBatch = JSON.parse(new TextDecoder().decode(resultBytes));
 
-    console.log(`[MQTT Fabric] Successfully committed to Blockchain for ${targetId}. Excursion Alert: ${updatedBatch.excursionAlert}`);
+    console.log(`[MQTT Fabric] Successfully committed to Blockchain for ${targetBatchId}. Excursion Alert: ${updatedBatch.excursionAlert}`);
 
-    // If temperature excursion occurred, publish immediate alert over MQTT back to IoT devices
+    // 4. If temperature excursion occurred, publish immediate alert over MQTT back to IoT devices
     if (updatedBatch.excursionAlert && mqttClient) {
+      const minThreshold = updatedBatch.minTemp !== undefined ? updatedBatch.minTemp : 2.0;
+      const maxThreshold = updatedBatch.maxTemp !== undefined ? updatedBatch.maxTemp : 8.0;
       const alertMsg = JSON.stringify({
         alert: true,
         type: 'TEMPERATURE_EXCURSION',
-        batchId: targetId,
+        batchId: targetBatchId,
+        deviceId: reporterId,
         temperature: Number(temperature),
-        thresholdRange: '2.0C - 8.0C',
+        humidity: Number(humidity) || 0,
+        thresholdRange: `${minThreshold}°C - ${maxThreshold}°C`,
         timestamp: logTimestamp,
         currentOwner: updatedBatch.currentOwner,
-        message: `CRITICAL: Excursion detected for batch ${targetId} (${tempVal}°C)!`,
+        message: `CRITICAL: Excursion detected for batch ${targetBatchId} (${tempVal}°C, allowed: ${minThreshold}-${maxThreshold}°C)!`,
       });
 
       mqttClient.publish('coldchain/alerts', alertMsg);
-      mqttClient.publish(`coldchain/${targetId}/alert`, alertMsg);
-      console.log(`[MQTT Alert] 🚨 Excursion broadcast published for ${targetId}`);
+      mqttClient.publish(`coldchain/${targetBatchId}/alert`, alertMsg);
+      mqttClient.publish(`coldchain/${reporterId}/alert`, alertMsg);
+      console.log(`[MQTT Alert] 🚨 Excursion broadcast published for batch ${targetBatchId} and device ${reporterId}`);
     }
   } catch (error) {
-    console.error(`[MQTT Fabric] Blockchain transaction failed for ${targetId}:`, error.message);
+    console.error(`[MQTT Fabric] Blockchain transaction failed for ${targetBatchId || deviceIdentifier}:`, error.message);
   } finally {
     if (gateway) gateway.close();
     if (client) client.close();

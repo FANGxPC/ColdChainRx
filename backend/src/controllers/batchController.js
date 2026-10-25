@@ -5,7 +5,7 @@ const { getContract } = require('../fabricGateway');
  * POST /api/batch/create
  */
 async function createBatch(req, res) {
-  const { id, drugName, manufacturer } = req.body;
+  const { id, drugName, manufacturer, minTemp, maxTemp } = req.body;
 
   if (!id || !drugName || !manufacturer) {
     return res.status(400).json({ error: 'Missing required fields: id, drugName, manufacturer' });
@@ -17,12 +17,30 @@ async function createBatch(req, res) {
     gateway = conn.gateway;
     client = conn.client;
 
-    await conn.contract.submitTransaction('CreateBatch', id, drugName, manufacturer);
+    if (minTemp !== undefined && maxTemp !== undefined) {
+      await conn.contract.submitTransaction(
+        'CreateBatchWithThresholds',
+        String(id),
+        String(drugName),
+        String(manufacturer),
+        String(minTemp),
+        String(maxTemp)
+      );
+    } else {
+      await conn.contract.submitTransaction('CreateBatch', String(id), String(drugName), String(manufacturer));
+    }
 
     return res.status(201).json({
       success: true,
       message: `Batch ${id} successfully created on blockchain.`,
-      data: { id, drugName, manufacturer, status: 'Manufactured' },
+      data: {
+        id,
+        drugName,
+        manufacturer,
+        status: 'Manufactured',
+        minTemp: minTemp !== undefined ? Number(minTemp) : 2.0,
+        maxTemp: maxTemp !== undefined ? Number(maxTemp) : 8.0,
+      },
     });
   } catch (error) {
     console.error(`Error in createBatch (${id}):`, error);
@@ -34,20 +52,49 @@ async function createBatch(req, res) {
 }
 
 /**
- * Log a temperature reading (Used by ESP32 + DHT11 Sensor or API clients)
- * POST /api/iot/temperature
+ * Assign an IoT sensor box / device to a batch
+ * POST /api/device/assign
  */
-async function logTemperature(req, res) {
-  const { batchId, id, sensor_id, temperature, reporter, timestamp, humidity } = req.body;
-  const targetId = batchId || id || sensor_id;
+async function assignDevice(req, res) {
+  const { deviceId, batchId } = req.body;
 
-  if (!targetId || temperature === undefined) {
-    return res.status(400).json({ error: 'Missing required fields: batchId (or id/sensor_id) and temperature' });
+  if (!deviceId || !batchId) {
+    return res.status(400).json({ error: 'Missing required fields: deviceId, batchId' });
   }
 
-  const logTimestamp = timestamp || new Date().toISOString();
-  const reporterId = reporter || sensor_id || 'ESP32_DHT11_Sensor';
-  const tempVal = String(temperature);
+  const timestamp = new Date().toISOString();
+  let gateway, client;
+  try {
+    const conn = await getContract();
+    gateway = conn.gateway;
+    client = conn.client;
+
+    await conn.contract.submitTransaction('AssignDeviceToBatch', String(deviceId), String(batchId), timestamp);
+
+    return res.status(200).json({
+      success: true,
+      message: `Device '${deviceId}' successfully assigned to batch '${batchId}' on blockchain.`,
+      data: { deviceId, batchId, assignedAt: timestamp, active: true },
+    });
+  } catch (error) {
+    console.error(`Error in assignDevice (${deviceId} -> ${batchId}):`, error);
+    return res.status(500).json({ error: error.message || 'Failed to assign device on blockchain.' });
+  } finally {
+    if (gateway) gateway.close();
+    if (client) client.close();
+  }
+}
+
+/**
+ * Query current batch assigned to an IoT sensor device
+ * GET /api/device/:deviceId/batch
+ */
+async function getDeviceAssignment(req, res) {
+  const { deviceId } = req.params;
+
+  if (!deviceId) {
+    return res.status(400).json({ error: 'Missing deviceId parameter' });
+  }
 
   let gateway, client;
   try {
@@ -55,33 +102,144 @@ async function logTemperature(req, res) {
     gateway = conn.gateway;
     client = conn.client;
 
-    // Ensure target batch exists on blockchain; if not, auto-create it for IoT readings
-    try {
-      await conn.contract.evaluateTransaction('QueryBatch', targetId);
-    } catch (err) {
-      console.log(`[IoT] Auto-creating batch '${targetId}' on ledger for incoming sensor reading...`);
-      await conn.contract.submitTransaction('CreateBatch', targetId, 'Medical Cold Chain Supply', 'DefaultManufacturer');
+    const resultBytes = await conn.contract.evaluateTransaction('GetDeviceAssignment', String(deviceId));
+    const assignment = JSON.parse(new TextDecoder().decode(resultBytes));
+
+    return res.status(200).json({ success: true, data: assignment });
+  } catch (error) {
+    console.error(`Error in getDeviceAssignment (${deviceId}):`, error);
+    return res.status(404).json({ error: error.message || `No active assignment found for device ${deviceId}` });
+  } finally {
+    if (gateway) gateway.close();
+    if (client) client.close();
+  }
+}
+
+/**
+ * Unassign an IoT sensor box / device
+ * POST /api/device/unassign
+ */
+async function unassignDevice(req, res) {
+  const { deviceId } = req.body;
+
+  if (!deviceId) {
+    return res.status(400).json({ error: 'Missing required field: deviceId' });
+  }
+
+  let gateway, client;
+  try {
+    const conn = await getContract();
+    gateway = conn.gateway;
+    client = conn.client;
+
+    await conn.contract.submitTransaction('UnassignDevice', String(deviceId));
+
+    return res.status(200).json({
+      success: true,
+      message: `Device '${deviceId}' successfully unassigned on blockchain.`,
+      data: { deviceId, active: false },
+    });
+  } catch (error) {
+    console.error(`Error in unassignDevice (${deviceId}):`, error);
+    return res.status(500).json({ error: error.message || 'Failed to unassign device on blockchain.' });
+  } finally {
+    if (gateway) gateway.close();
+    if (client) client.close();
+  }
+}
+
+/**
+ * Log a temperature and humidity reading (Used by ESP32 + DHT Sensor or Edge Gateways)
+ * Resolves device-to-batch assignment if batchId is not provided.
+ * POST /api/iot/temperature
+ */
+async function logTemperature(req, res) {
+  const { batchId, id, sensor_id, deviceId, temperature, reporter, timestamp, humidity } = req.body;
+  const explicitBatchId = batchId || id;
+  const deviceIdentifier = sensor_id || deviceId || reporter;
+
+  if (temperature === undefined) {
+    return res.status(400).json({ error: 'Missing required field: temperature' });
+  }
+
+  let targetBatchId = explicitBatchId;
+  const logTimestamp = timestamp || new Date().toISOString();
+  const reporterId = deviceIdentifier || reporter || 'ESP32_DHT_Sensor';
+  const tempVal = String(temperature);
+  const humVal = humidity !== undefined ? String(humidity) : '0';
+
+  let gateway, client;
+  try {
+    const conn = await getContract();
+    gateway = conn.gateway;
+    client = conn.client;
+
+    // 1. Device-to-Batch Resolution: If batchId not passed, resolve via blockchain registry
+    if (!targetBatchId) {
+      if (!deviceIdentifier) {
+        return res.status(400).json({ error: 'Must provide either batchId or sensor_id / deviceId to resolve target batch' });
+      }
+
+      try {
+        const assignmentBytes = await conn.contract.evaluateTransaction('GetDeviceAssignment', String(deviceIdentifier));
+        const assignment = JSON.parse(new TextDecoder().decode(assignmentBytes));
+        if (!assignment || !assignment.active || !assignment.batchId) {
+          return res.status(400).json({
+            error: `Device '${deviceIdentifier}' is not assigned to any active batch. Telemetry rejected.`
+          });
+        }
+        targetBatchId = assignment.batchId;
+        console.log(`[Device Resolution] Resolved device '${deviceIdentifier}' -> Batch '${targetBatchId}'`);
+      } catch (assignErr) {
+        return res.status(400).json({
+          error: `Device '${deviceIdentifier}' is unassigned or invalid on blockchain. Telemetry rejected.`
+        });
+      }
+    } else {
+      // If batchId is passed, verify target batch exists on blockchain
+      try {
+        await conn.contract.evaluateTransaction('QueryBatch', String(targetBatchId));
+      } catch (batchErr) {
+        return res.status(404).json({
+          error: `Target batch '${targetBatchId}' does not exist on blockchain. Telemetry rejected.`
+        });
+      }
     }
 
-    await conn.contract.submitTransaction('LogTemperature', targetId, logTimestamp, tempVal, reporterId);
+    // 2. Submit telemetry to Fabric using LogTelemetry (with humidity), fallback to LogTemperature
+    try {
+      await conn.contract.submitTransaction('LogTelemetry', targetBatchId, logTimestamp, tempVal, humVal, reporterId);
+    } catch (_) {
+      await conn.contract.submitTransaction('LogTemperature', targetBatchId, logTimestamp, tempVal, reporterId);
+    }
 
-    // Also fetch updated state to report if an excursion alert was triggered
-    const resultBytes = await conn.contract.evaluateTransaction('QueryBatch', targetId);
+    // 3. Fetch updated state to report excursion alert
+    const resultBytes = await conn.contract.evaluateTransaction('QueryBatch', targetBatchId);
     const updatedBatch = JSON.parse(new TextDecoder().decode(resultBytes));
 
     return res.status(200).json({
       success: true,
-      message: `Temperature logged for batch ${targetId}`,
-      receivedData: { batchId: targetId, temperature: Number(temperature), humidity, timestamp: logTimestamp, reporter: reporterId },
+      message: `Telemetry logged for batch ${targetBatchId}`,
+      receivedData: {
+        batchId: targetBatchId,
+        resolvedFromDevice: explicitBatchId ? null : deviceIdentifier,
+        temperature: Number(temperature),
+        humidity: Number(humidity) || 0,
+        timestamp: logTimestamp,
+        reporter: reporterId,
+      },
       blockchainState: {
         excursionAlert: updatedBatch.excursionAlert,
         currentOwner: updatedBatch.currentOwner,
         status: updatedBatch.status,
+        minTemp: updatedBatch.minTemp,
+        maxTemp: updatedBatch.maxTemp,
+        assignedDevice: updatedBatch.assignedDevice,
       },
     });
   } catch (error) {
-    console.error(`Error in logTemperature (${targetId}):`, error);
-    return res.status(500).json({ error: error.message || 'Failed to log temperature on blockchain.' });
+    console.error(`Error in logTemperature (${targetBatchId || deviceIdentifier}):`, error);
+    return res.status(500).json({ error: error.message || 'Failed to log telemetry on blockchain.' });
   } finally {
     if (gateway) gateway.close();
     if (client) client.close();
@@ -216,6 +374,9 @@ async function getBatchHistory(req, res) {
 
 module.exports = {
   createBatch,
+  assignDevice,
+  getDeviceAssignment,
+  unassignDevice,
   logTemperature,
   transferCustody,
   queryBatch,

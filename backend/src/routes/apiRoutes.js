@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const {
   createBatch,
+  assignDevice,
+  getDeviceAssignment,
+  unassignDevice,
   logTemperature,
   transferCustody,
   queryBatch,
@@ -20,6 +23,11 @@ router.post('/batch/create', createBatch);
 router.post('/batch/transfer', transferCustody);
 router.get('/batch/:id', queryBatch);
 router.get('/batch/:id/history', getBatchHistory);
+
+// Device Registry & Assignment Routes (ColdChainRx Sensor Box Management)
+router.post('/device/assign', assignDevice);
+router.get('/device/:deviceId/batch', getDeviceAssignment);
+router.post('/device/unassign', unassignDevice);
 
 // IoT Sensor Route (For Omkar's ESP32 + DHT11/DHT22 Hardware)
 router.post('/iot/temperature', logTemperature);

@@ -14,7 +14,7 @@ const app = express();
 // needs a code change when the host moves.
 // Correct IP confirmed 2026-10-23: 10.194.253.204 (same 10.194.253.x subnet)
 // ---------------------------------------------------------------------------
-const SWAGATA_BASE = process.env.FABRIC_BACKEND_URL || 'http://10.194.253.204:5000';
+const SWAGATA_BASE = process.env.FABRIC_BACKEND_URL || 'http://localhost:5000';
 
 // ---------------------------------------------------------------------------
 // Cold-chain business rules (kept in one place)
@@ -156,8 +156,8 @@ const mockTelemetryDatasets = {
 // Helper: Convert Swagata's batch JSON → the shape the UI and chart expect
 // ---------------------------------------------------------------------------
 function mapSwagataBatch(raw) {
-  const minTemp = SAFE_MIN;
-  const maxTemp = SAFE_MAX;
+  const minTemp = raw.minTemp !== undefined ? raw.minTemp : SAFE_MIN;
+  const maxTemp = raw.maxTemp !== undefined ? raw.maxTemp : SAFE_MAX;
 
   const readings = (raw.temperatureLogs || []).map((log) => {
     const temp = log.temperature;
@@ -169,7 +169,7 @@ function mapSwagataBatch(raw) {
     return {
       time: new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       temp,
-      humidity: MEAN_HUMIDITY, // ledger does not persist humidity; use training-set mean
+      humidity: (log.humidity !== undefined && log.humidity !== null && log.humidity > 0) ? log.humidity : MEAN_HUMIDITY,
       location: log.reporter || 'Unknown Sensor',
       hop: 'Ledger recorded',
       status: readingStatus,
@@ -191,8 +191,9 @@ function mapSwagataBatch(raw) {
     requiredTempMax: maxTemp,
     unit: '°C',
     status: hasExcursion ? 'Temperature Breach Detected' : `Authentic & Safe (${raw.status || 'InTransit'})`,
-    storageType: 'Refrigerated Cold Storage (2°C – 8°C)',
+    storageType: `Cold Storage (${minTemp}°C – ${maxTemp}°C)`,
     excursionAlert: hasExcursion,
+    assignedDevice: raw.assignedDevice || null,
     readings,
     _live: true,  // flag to distinguish from mock data
   };
@@ -249,6 +250,47 @@ app.get('/api/fabric/batch/:id', validateBatchId, async (req, res) => {
       _mock: true,
       warning: 'Using mock data – ledger is currently unreachable.'
     });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// NEW  Proxy routes for Batch Creation and Device Assignment
+// ---------------------------------------------------------------------------
+app.post('/api/fabric/batch/create', async (req, res) => {
+  try {
+    const response = await fetch(`${SWAGATA_BASE}/api/batch/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
+    const data = await response.json();
+    return res.status(response.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: `Fabric backend unreachable: ${err.message}` });
+  }
+});
+
+app.post('/api/fabric/device/assign', async (req, res) => {
+  try {
+    const response = await fetch(`${SWAGATA_BASE}/api/device/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
+    const data = await response.json();
+    return res.status(response.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: `Fabric backend unreachable: ${err.message}` });
+  }
+});
+
+app.get('/api/fabric/device/:id/batch', async (req, res) => {
+  try {
+    const response = await fetch(`${SWAGATA_BASE}/api/device/${encodeURIComponent(req.params.id)}/batch`);
+    const data = await response.json();
+    return res.status(response.status).json(data);
+  } catch (err) {
+    return res.status(502).json({ success: false, error: `Fabric backend unreachable: ${err.message}` });
   }
 });
 

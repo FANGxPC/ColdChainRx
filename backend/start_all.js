@@ -75,6 +75,29 @@ function spawnService(name, scriptPath, prefix, color) {
   return child;
 }
 
+// Auto-free lingering backend ports before starting (prevents EADDRINUSE on Windows)
+[3001, 5000].forEach((port) => {
+  if (process.platform === 'win32') {
+    try {
+      const output = execSync(
+        `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique"`,
+        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }
+      ).trim();
+      if (output) {
+        const pids = output.split(/\r?\n/).map((p) => p.trim()).filter(Boolean);
+        pids.forEach((pid) => {
+          if (pid && pid !== '0' && pid !== `${process.pid}`) {
+            try {
+              execSync(`taskkill /pid ${pid} /f /t`, { stdio: 'ignore' });
+              console.log(`🧹 Auto-freed port ${port} (terminated lingering PID ${pid})`);
+            } catch (_) {}
+          }
+        });
+      }
+    } catch (_) {}
+  }
+});
+
 // Start Fabric & IoT Gateway (Port 5000 + MQTT 1883)
 const fabricServer = spawnService('Fabric Gateway', './src/server.js', '[Fabric:5000]');
 
@@ -87,7 +110,7 @@ function shutdown() {
   children.forEach((child) => {
     try {
       if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', child.pid, '/f', '/t'], { stdio: 'ignore' });
+        execSync(`taskkill /pid ${child.pid} /f /t`, { stdio: 'ignore' });
       } else {
         child.kill('SIGTERM');
       }
@@ -96,12 +119,29 @@ function shutdown() {
   process.exit(0);
 }
 
+// Windows Ctrl+C fix for Node.js
+if (process.platform === 'win32') {
+  const readline = require('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  rl.on('SIGINT', () => {
+    process.emit('SIGINT');
+  });
+}
+
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 process.on('exit', () => {
   children.forEach((child) => {
     try {
-      child.kill();
+      if (process.platform === 'win32') {
+        execSync(`taskkill /pid ${child.pid} /f /t`, { stdio: 'ignore' });
+      } else {
+        child.kill();
+      }
     } catch (_) {}
   });
 });
+

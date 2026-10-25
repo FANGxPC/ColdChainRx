@@ -8,9 +8,10 @@ This directory contains the ready-to-flash ESP32 firmware for the **ColdChainRx*
 
 - **Backend Gateway**: Running on port `5000` (`http://localhost:5000`)
 - **Cloudflare Public Tunnel**: **ACTIVE & LIVE**
-  - **Public Base URL**: `https://youth-gregory-disc-might.trycloudflare.com`
-  - **Health Check**: `https://youth-gregory-disc-might.trycloudflare.com/health`
-  - **IoT Ingestion Endpoint**: `https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature`
+  - **Public Base URL**: `https://mental-kate-atlanta-complement.trycloudflare.com`
+  - **Health Check**: `https://mental-kate-atlanta-complement.trycloudflare.com/health`
+  - **IoT Ingestion Endpoint**: `https://mental-kate-atlanta-complement.trycloudflare.com/api/iot/temperature`
+  - **Device Assign Endpoint**: `https://mental-kate-atlanta-complement.trycloudflare.com/api/device/assign`
 
 > ✅ Any device on earth (ESP32 on 4G hotspot, teammate at another home, phone browser) can now send requests to Swagata's Hyperledger Fabric ledger!
 
@@ -64,28 +65,35 @@ To test the live tunnel from any computer or terminal without waiting for the ES
 
 ### Test 1: Verify Gateway Health
 ```bash
-curl -i https://youth-gregory-disc-might.trycloudflare.com/health
+curl -i https://mental-kate-atlanta-complement.trycloudflare.com/health
 ```
 
-### Test 2: Simulate ESP32 Temperature Reading (Normal - 4.5°C)
+### Test 2: Assign Sensor Box to Medicine Batch
 ```bash
-curl -X POST https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature \
+curl -X POST https://mental-kate-atlanta-complement.trycloudflare.com/api/device/assign \
   -H "Content-Type: application/json" \
-  -d '{"batchId":"BATCH_1792760493","temperature":4.5,"humidity":55.0,"reporter":"ESP32_Test_Unit"}'
+  -d '{"deviceId":"Sensor_Omkar_01","batchId":"BATCH_2026_01","caller":"ManufacturerMSP"}'
 ```
 
-### Test 3: Simulate Excursion Alarm (Spike - 12.0°C)
+### Test 3: Simulate ESP32 Temperature Reading (Normal - 4.5°C)
 ```bash
-curl -X POST https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature \
+curl -X POST https://mental-kate-atlanta-complement.trycloudflare.com/api/iot/temperature \
   -H "Content-Type: application/json" \
-  -d '{"batchId":"BATCH_1792760493","temperature":12.0,"humidity":62.5,"reporter":"ESP32_Test_Unit"}'
+  -d '{"sensor_id":"Sensor_Omkar_01","temperature":4.5,"humidity":55.0,"reporter":"Sensor_Omkar_01"}'
+```
+
+### Test 4: Simulate Excursion Alarm (Spike - 12.0°C)
+```bash
+curl -X POST https://mental-kate-atlanta-complement.trycloudflare.com/api/iot/temperature \
+  -H "Content-Type: application/json" \
+  -d '{"sensor_id":"Sensor_Omkar_01","temperature":12.0,"humidity":62.5,"reporter":"Sensor_Omkar_01"}'
 ```
 
 ---
 
-## 💻 Web App (Fang) Configuration
+## 💻 Web App (Sadique / Frontend) Configuration
 
-Fang can connect the frontend dashboard from anywhere by setting in their `.env`:
+Sadique can connect the Next.js frontend dashboard from anywhere by setting in `.env`:
 ```env
-NEXT_PUBLIC_API_URL=https://youth-gregory-disc-might.trycloudflare.com
+NEXT_PUBLIC_API_URL=https://mental-kate-atlanta-complement.trycloudflare.com
 ```

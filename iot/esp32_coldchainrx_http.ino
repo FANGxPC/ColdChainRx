@@ -23,15 +23,18 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 // 2. ColdChainRx Cloudflare Live Endpoint
 // Public tunnel URL created on Swagata's machine:
-const char* BACKEND_URL   = "https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature";
+const char* BACKEND_URL   = "https://mental-kate-atlanta-complement.trycloudflare.com/api/iot/temperature";
 
-// 3. Sensor & Batch Metadata
+// 3. Sensor & Hardware Metadata
 #define DHTPIN 4          // GPIO pin where DHT sensor data pin is connected
 #define DHTTYPE DHT11     // Change to DHT22 if using white DHT22 sensor
 #define LED_PIN 2         // ESP32 Onboard LED indicator
 
-const char* BATCH_ID      = "BATCH_1792760493";
-const char* REPORTER_ID   = "Sensor_Omkar_01";
+// Device ID registered on Swagata's Fabric ledger:
+// (The backend resolves sensor_id to the active medicine batch automatically!)
+const char* SENSOR_ID     = "Sensor_Omkar_01";
+// Optional: If known, BATCH_ID can be set or left empty ("")
+const char* BATCH_ID      = "";
 
 // Interval between telemetry transmissions (in milliseconds)
 const unsigned long SEND_INTERVAL_MS = 10000; // 10 seconds
@@ -122,12 +125,15 @@ void sendTelemetry() {
   Serial.printf("[Sensor Reading] Temp: %.2f C | Humidity: %.2f %%\n", temp, hum);
 
   // Construct JSON payload
-  // Format matches ColdChainRx backend /api/iot/temperature
+  // Omkar only needs to transmit sensor_id! Fabric ledger auto-resolves device -> active batch.
   String payload = "{";
-  payload += "\"batchId\":\"" + String(BATCH_ID) + "\",";
+  payload += "\"sensor_id\":\"" + String(SENSOR_ID) + "\",";
   payload += "\"temperature\":" + String(temp, 2) + ",";
   payload += "\"humidity\":" + String(hum, 2) + ",";
-  payload += "\"reporter\":\"" + String(REPORTER_ID) + "\"";
+  payload += "\"reporter\":\"" + String(SENSOR_ID) + "\"";
+  if (strlen(BATCH_ID) > 0) {
+    payload += ",\"batchId\":\"" + String(BATCH_ID) + "\"";
+  }
   payload += "}";
 
   Serial.println("[HTTP] Sending POST payload:");

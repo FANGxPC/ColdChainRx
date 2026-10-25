@@ -17,15 +17,14 @@ import paho.mqtt.client as mqtt
 
 # ================= CONFIGURATION =================
 # Swagata's Active Cloudflare Tunnel URL:
-CLOUDFLARE_URL = "https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature"
+CLOUDFLARE_URL = "https://mental-kate-atlanta-complement.trycloudflare.com/api/iot/temperature"
 
 # Omkar's Local MQTT Broker:
 LOCAL_MQTT_BROKER = "localhost"
 LOCAL_MQTT_PORT = 1883
 
-# Default Batch ID on the Hyperledger Fabric ledger:
-DEFAULT_BATCH_ID = "BATCH_1792760493"
-DEFAULT_REPORTER = "Sensor_Omkar_01"
+# Default Sensor / Reporter ID registered on Hyperledger Fabric:
+DEFAULT_SENSOR_ID = "Sensor_Omkar_01"
 
 # Topics to listen for from the ESP32:
 TOPICS = [
@@ -53,13 +52,17 @@ def on_message(client, userdata, msg):
         # Parse JSON payload
         data = json.loads(raw_text)
 
+        sensor_id = data.get("sensor_id") or data.get("device_id") or data.get("reporter") or DEFAULT_SENSOR_ID
+
         # Normalize field names to match ColdChainRx backend schema
         payload = {
-            "batchId": data.get("batchId") or data.get("batch_id") or DEFAULT_BATCH_ID,
+            "sensor_id": sensor_id,
+            "reporter": sensor_id,
             "temperature": float(data.get("temperature") or data.get("temp") or 0.0),
             "humidity": float(data.get("humidity") or data.get("hum") or 50.0),
-            "reporter": data.get("reporter") or DEFAULT_REPORTER
         }
+        if data.get("batchId") or data.get("batch_id"):
+            payload["batchId"] = data.get("batchId") or data.get("batch_id")
 
         print(f"[Forwarding -> Cloudflare Tunnel] Sending to Swagata's Fabric ledger...")
         response = requests.post(CLOUDFLARE_URL, json=payload, timeout=8)

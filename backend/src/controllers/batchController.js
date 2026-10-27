@@ -168,6 +168,13 @@ async function logTemperature(req, res) {
   const tempVal = String(temperature);
   const humVal = humidity !== undefined ? String(humidity) : '0';
 
+  console.log(`\n📥 [IoT INGESTION] Incoming Sensor Reading:`);
+  console.log(`   Device/Sensor : ${deviceIdentifier || 'N/A'}`);
+  console.log(`   Batch ID      : ${targetBatchId || '(resolving...)'}`);
+  console.log(`   Temperature   : ${temperature} °C`);
+  console.log(`   Humidity      : ${humidity !== undefined ? humidity + ' %' : 'N/A'}`);
+  console.log(`   Timestamp     : ${logTimestamp}`);
+
   let gateway, client;
   try {
     const conn = await getContract();
@@ -212,6 +219,8 @@ async function logTemperature(req, res) {
     } catch (_) {
       await conn.contract.submitTransaction('LogTemperature', targetBatchId, logTimestamp, tempVal, reporterId);
     }
+
+    console.log(`⛓️  [BLOCKCHAIN COMMITTED] Batch '${targetBatchId}': ${temperature}°C, ${humidity || 0}% recorded on ledger.`);
 
     // 3. Fetch updated state to report excursion alert
     const resultBytes = await conn.contract.evaluateTransaction('QueryBatch', targetBatchId);
@@ -354,10 +363,20 @@ async function getBatchHistory(req, res) {
       // Fallback to standard GetBatchHistory
       console.warn(`[History] Falling back to GetBatchHistory: ${paginatedErr.message}`);
       const resultBytes = await conn.contract.evaluateTransaction('GetBatchHistory', id);
-      history = JSON.parse(new TextDecoder().decode(resultBytes));
+      const rawHistory = JSON.parse(new TextDecoder().decode(resultBytes));
+      // Reverse so newest transactions are first
+      const reversed = Array.isArray(rawHistory) ? rawHistory.slice().reverse() : [];
+      history = reversed.slice(0, size);
+      paginationInfo = {
+        totalRecords: reversed.length,
+        page: pageNum,
+        pageSize: size,
+        totalPages: Math.ceil(reversed.length / size) || 1,
+        hasMore: size < reversed.length,
+      };
     }
 
-    const responseData = { success: true, data: history };
+    const responseData = { success: true, totalRecords: paginationInfo ? paginationInfo.totalRecords : history.length, data: history };
     if (paginationInfo) {
       responseData.pagination = paginationInfo;
     }

@@ -1,0 +1,41 @@
+{
+  "benchmark_timestamp": "2026-10-23T16:21:47.477178+00:00",
+  "n_readings": 50,
+  "fabric_target": "https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature",
+  "ml_target": "http://127.0.0.1:5001/predict",
+  "t_validation_ms": {
+    "n": 50,
+    "mean": 2.2,
+    "std": 15.56,
+    "min": 0.0,
+    "max": 110.0,
+    "median": 0.0
+  },
+  "t_ml_ms": {
+    "n": 50,
+    "mean": 23.56,
+    "std": 11.57,
+    "min": 0.0,
+    "max": 47.0,
+    "median": 16.0
+  },
+  "t_fabric_ms": {
+    "n": 50,
+    "mean": 3231.06,
+    "std": 1042.96,
+    "min": 2547.0,
+    "max": 9438.0,
+    "median": 2961.0
+  },
+  "t_total_pipeline_ms": {
+    "n": 50,
+    "mean": 3256.82,
+    "std": 1041.71,
+    "min": 2562.0,
+    "max": 9453.0,
+    "median": 2992.5
+  },
+  "ml_service_reachable": 50,
+  "fabric_service_reachable": 50,
+  "notes": "Fabric latency includes Cloudflare tunnel RTT when backend is remote. TIMEOUT values excluded from statistics."
+}

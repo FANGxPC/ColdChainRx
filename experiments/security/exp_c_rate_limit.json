@@ -1,0 +1,507 @@
+{
+  "experiment": "C - Rate Limiting / DoS Defence",
+  "stride_category": "Denial of Service",
+  "run_timestamp": "2026-10-23T16:14:14.846850+00:00",
+  "active_batch_id": "BATCH_1792760493",
+  "tests": {
+    "C1_express_verify_parallel_flood": {
+      "url": "http://localhost:3001/verify/BATCH_1792760493",
+      "rate_limit_rule": "20 requests per 5 minutes",
+      "n_requests": 25,
+      "status_counts": {
+        "200": 19,
+        "429": 6
+      },
+      "results": [
+        {
+          "req": 1,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 2,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 3,
+          "status": 200,
+          "elapsed_ms": 782.0,
+          "rate_limited": false
+        },
+        {
+          "req": 4,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 5,
+          "status": 200,
+          "elapsed_ms": 782.0,
+          "rate_limited": false
+        },
+        {
+          "req": 6,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 7,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 8,
+          "status": 200,
+          "elapsed_ms": 782.0,
+          "rate_limited": false
+        },
+        {
+          "req": 9,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 10,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 11,
+          "status": 200,
+          "elapsed_ms": 782.0,
+          "rate_limited": false
+        },
+        {
+          "req": 12,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 13,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 14,
+          "status": 200,
+          "elapsed_ms": 766.0,
+          "rate_limited": false
+        },
+        {
+          "req": 15,
+          "status": 200,
+          "elapsed_ms": 750.0,
+          "rate_limited": false
+        },
+        {
+          "req": 16,
+          "status": 200,
+          "elapsed_ms": 266.0,
+          "rate_limited": false
+        },
+        {
+          "req": 17,
+          "status": 200,
+          "elapsed_ms": 219.0,
+          "rate_limited": false
+        },
+        {
+          "req": 18,
+          "status": 200,
+          "elapsed_ms": 250.0,
+          "rate_limited": false
+        },
+        {
+          "req": 19,
+          "status": 429,
+          "elapsed_ms": 16.0,
+          "rate_limited": true
+        },
+        {
+          "req": 20,
+          "status": 200,
+          "elapsed_ms": 266.0,
+          "rate_limited": false
+        },
+        {
+          "req": 21,
+          "status": 429,
+          "elapsed_ms": 16.0,
+          "rate_limited": true
+        },
+        {
+          "req": 22,
+          "status": 429,
+          "elapsed_ms": 16.0,
+          "rate_limited": true
+        },
+        {
+          "req": 23,
+          "status": 429,
+          "elapsed_ms": 16.0,
+          "rate_limited": true
+        },
+        {
+          "req": 24,
+          "status": 429,
+          "elapsed_ms": 16.0,
+          "rate_limited": true
+        },
+        {
+          "req": 25,
+          "status": 429,
+          "elapsed_ms": 16.0,
+          "rate_limited": true
+        }
+      ]
+    },
+    "C2_express_api_sequential_burst": {
+      "url": "http://localhost:3001/api/fabric/batch/BATCH_1792760493",
+      "rate_limit_rule": "100 requests per 15 minutes",
+      "n_requests": 30,
+      "inter_request_delay_s": 0.05,
+      "first_429_at_request": null,
+      "status_counts": {
+        "200": 29,
+        "502": 1
+      },
+      "results": [
+        {
+          "req": 1,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 2,
+          "status": 200,
+          "elapsed_ms": 188.0,
+          "rate_limited": false
+        },
+        {
+          "req": 3,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 4,
+          "status": 200,
+          "elapsed_ms": 109.0,
+          "rate_limited": false
+        },
+        {
+          "req": 5,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 6,
+          "status": 200,
+          "elapsed_ms": 94.0,
+          "rate_limited": false
+        },
+        {
+          "req": 7,
+          "status": 200,
+          "elapsed_ms": 110.0,
+          "rate_limited": false
+        },
+        {
+          "req": 8,
+          "status": 200,
+          "elapsed_ms": 172.0,
+          "rate_limited": false
+        },
+        {
+          "req": 9,
+          "status": 200,
+          "elapsed_ms": 141.0,
+          "rate_limited": false
+        },
+        {
+          "req": 10,
+          "status": 200,
+          "elapsed_ms": 94.0,
+          "rate_limited": false
+        },
+        {
+          "req": 11,
+          "status": 200,
+          "elapsed_ms": 109.0,
+          "rate_limited": false
+        },
+        {
+          "req": 12,
+          "status": 200,
+          "elapsed_ms": 109.0,
+          "rate_limited": false
+        },
+        {
+          "req": 13,
+          "status": 200,
+          "elapsed_ms": 281.0,
+          "rate_limited": false
+        },
+        {
+          "req": 14,
+          "status": 200,
+          "elapsed_ms": 94.0,
+          "rate_limited": false
+        },
+        {
+          "req": 15,
+          "status": 200,
+          "elapsed_ms": 172.0,
+          "rate_limited": false
+        },
+        {
+          "req": 16,
+          "status": 200,
+          "elapsed_ms": 141.0,
+          "rate_limited": false
+        },
+        {
+          "req": 17,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 18,
+          "status": 200,
+          "elapsed_ms": 140.0,
+          "rate_limited": false
+        },
+        {
+          "req": 19,
+          "status": 200,
+          "elapsed_ms": 93.0,
+          "rate_limited": false
+        },
+        {
+          "req": 20,
+          "status": 200,
+          "elapsed_ms": 156.0,
+          "rate_limited": false
+        },
+        {
+          "req": 21,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 22,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 23,
+          "status": 200,
+          "elapsed_ms": 156.0,
+          "rate_limited": false
+        },
+        {
+          "req": 24,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 25,
+          "status": 200,
+          "elapsed_ms": 156.0,
+          "rate_limited": false
+        },
+        {
+          "req": 26,
+          "status": 200,
+          "elapsed_ms": 109.0,
+          "rate_limited": false
+        },
+        {
+          "req": 27,
+          "status": 200,
+          "elapsed_ms": 125.0,
+          "rate_limited": false
+        },
+        {
+          "req": 28,
+          "status": 200,
+          "elapsed_ms": 94.0,
+          "rate_limited": false
+        },
+        {
+          "req": 29,
+          "status": 200,
+          "elapsed_ms": 141.0,
+          "rate_limited": false
+        },
+        {
+          "req": 30,
+          "status": 502,
+          "elapsed_ms": 5079.0,
+          "rate_limited": false
+        }
+      ]
+    },
+    "C3_nextjs_api_sequential_burst": {
+      "url": "http://localhost:3000/api/fabric/batch/BATCH_1792760493",
+      "n_requests": 20,
+      "inter_request_delay_s": 0.1,
+      "first_429_at_request": null,
+      "status_counts": {
+        "TIMEOUT": 19,
+        "502": 1
+      },
+      "results": [
+        {
+          "req": 1,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 2,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 3,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 4,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 5,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 6,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 7,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 8,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 9,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 10,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 11,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 12,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 13,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 14,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 15,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 16,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 17,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 18,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 19,
+          "status": "TIMEOUT",
+          "elapsed_ms": null,
+          "rate_limited": false
+        },
+        {
+          "req": 20,
+          "status": 502,
+          "elapsed_ms": 62.0,
+          "rate_limited": false
+        }
+      ]
+    }
+  },
+  "summary": {
+    "C1_express_verify_parallel_429_count": 6,
+    "C2_express_api_sequential_first_429": null,
+    "C3_nextjs_sequential_first_429": null,
+    "rate_limiting_active_on_express_verify": true,
+    "rate_limiting_active_on_express_api": false,
+    "rate_limiting_active_on_nextjs": false,
+    "dos_protection_verdict": "PROTECTED",
+    "rate_limit_rules": {
+      "/verify/": "20 requests per 5 minutes (verifyLimiter)",
+      "/api/": "100 requests per 15 minutes (apiLimiter)"
+    }
+  }
+}

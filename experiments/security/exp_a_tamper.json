@@ -1,0 +1,77 @@
+{
+  "experiment": "A - Data Poisoning / Tampered Sensor Data",
+  "stride_category": "Tampering",
+  "run_timestamp": "2026-10-23T16:10:36.157053+00:00",
+  "target_endpoint": "https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature",
+  "batch_id": "BATCH_1792760493",
+  "part1_gateway_injection_tests": [
+    {
+      "label": "A1 - Extreme cold (physically impossible: -200\u00b0C)",
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch BATCH_1792760493\",\"receivedData\":{\"batchId\":\"BATCH_1792760493\",\"temperature\":-200,\"humidity\":55,\"timestamp\":\"2026-10-23T16:10:36.157053+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":true,\"currentOwner\":\"DHL Logistics\",\"statu",
+      "blocked": false
+    },
+    {
+      "label": "A2 - Extreme heat (physically impossible: +500\u00b0C)",
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch BATCH_1792760493\",\"receivedData\":{\"batchId\":\"BATCH_1792760493\",\"temperature\":500,\"humidity\":55,\"timestamp\":\"2026-10-23T16:10:36.157053+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":true,\"currentOwner\":\"DHL Logistics\",\"status",
+      "blocked": false
+    },
+    {
+      "label": "A3 - Null temperature field",
+      "status_code": 500,
+      "response": "{\"error\":\"10 ABORTED: failed to endorse transaction, see attached details for more info\"}",
+      "blocked": true
+    },
+    {
+      "label": "A4 - String value as temperature (type confusion)",
+      "status_code": 500,
+      "response": "{\"error\":\"10 ABORTED: failed to endorse transaction, see attached details for more info\"}",
+      "blocked": true
+    },
+    {
+      "label": "A5 - Missing batchId (incomplete record)",
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch Sensor_Omkar_01\",\"receivedData\":{\"batchId\":\"Sensor_Omkar_01\",\"temperature\":5,\"humidity\":55,\"timestamp\":\"2026-10-23T16:10:36.157053+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":false,\"currentOwner\":\"DefaultManufacturer\",\"sta",
+      "blocked": false
+    },
+    {
+      "label": "A6 - SQL/NoSQL injection in batchId",
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch '; DROP TABLE batches; --\",\"receivedData\":{\"batchId\":\"'; DROP TABLE batches; --\",\"temperature\":5,\"humidity\":55,\"timestamp\":\"2026-10-23T16:10:36.157053+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":false,\"currentOwner\":\"Defau",
+      "blocked": false
+    },
+    {
+      "label": "A7 - Humidity out of physical range (150%)",
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch BATCH_1792760493\",\"receivedData\":{\"batchId\":\"BATCH_1792760493\",\"temperature\":5,\"humidity\":150,\"timestamp\":\"2026-10-23T16:10:36.157053+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":true,\"currentOwner\":\"DHL Logistics\",\"status\"",
+      "blocked": false
+    },
+    {
+      "label": "A8 - Empty JSON body",
+      "status_code": 400,
+      "response": "{\"error\":\"Missing required fields: batchId (or id/sensor_id) and temperature\"}",
+      "blocked": true
+    }
+  ],
+  "part2_offchain_tamper_test": {
+    "cid": "QmZtTK6RuSbuwpWagHwbawxmZPhz2JUvq76wb5htSPn9pk",
+    "upload_status": 201,
+    "verify_status": 200,
+    "verify_response": {
+      "success": true,
+      "matches": false,
+      "tampered": true,
+      "message": "ALERT: Data hash mismatch! Content has been modified/tampered with."
+    },
+    "tampered_flag": true,
+    "matches_flag": false,
+    "tamper_detected": true
+  },
+  "summary": {
+    "total_injection_tests": 8,
+    "blocked_by_backend": 3,
+    "backend_unreachable": 0,
+    "offchain_tamper_caught": true
+  }
+}

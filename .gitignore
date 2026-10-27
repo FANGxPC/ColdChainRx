@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+ml-service/.venv/
+__pycache__/
+
+# Environment variables & secrets
+.env
+backend/.env
+*.env
+
+# Private Hardware Credentials & Code Backups
+Basic_BC_Project_Code_copy_*/
+secrets.h
+
+# Local development artifacts & backups
+backups/
+coldchain-status*.txt
+
+# Build outputs
+dist/
+build/
+
+# ML Model Artifacts (commit code only, generate locally or via CI/CD)
+*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db

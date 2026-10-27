@@ -1,0 +1,89 @@
+{
+  "experiment": "B - Unauthorized Batch Write",
+  "stride_categories": [
+    "Spoofing",
+    "Elevation of Privilege"
+  ],
+  "run_timestamp": "2026-10-23T16:07:10.878355+00:00",
+  "target_endpoint": "https://youth-gregory-disc-might.trycloudflare.com/api/iot/temperature",
+  "active_batch_id": "BATCH_1792760493",
+  "scenarios": [
+    {
+      "label": "B1 - Non-existent batch ID (random fake)",
+      "description": "Backend should reject: batch does not exist in Fabric ledger.",
+      "expected_blocked": true,
+      "actual_blocked": false,
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch BATCH_FAKE_9999\",\"receivedData\":{\"batchId\":\"BATCH_FAKE_9999\",\"temperature\":5,\"humidity\":55,\"timestamp\":\"2026-10-23T16:07:10.878355+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":false,\"currentOwner\":\"DefaultManufacturer\",\"sta",
+      "correct_behavior": false,
+      "verdict": "!! NOT BLOCKED \u2014 potential vulnerability !!"
+    },
+    {
+      "label": "B2 - Batch ID from a previous ledger session (stale)",
+      "description": "Old batch IDs that no longer exist should be rejected.",
+      "expected_blocked": true,
+      "actual_blocked": false,
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch MED_TEMP_01\",\"receivedData\":{\"batchId\":\"MED_TEMP_01\",\"temperature\":5,\"humidity\":55,\"timestamp\":\"2026-10-23T16:07:10.878355+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":false,\"currentOwner\":\"DefaultManufacturer\",\"status\":\"Ma",
+      "correct_behavior": false,
+      "verdict": "!! NOT BLOCKED \u2014 potential vulnerability !!"
+    },
+    {
+      "label": "B3 - Empty batchId string",
+      "description": "Empty batch IDs should be rejected at validation.",
+      "expected_blocked": true,
+      "actual_blocked": false,
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch Sensor_Omkar_01\",\"receivedData\":{\"batchId\":\"Sensor_Omkar_01\",\"temperature\":5,\"humidity\":55,\"timestamp\":\"2026-10-23T16:07:10.878355+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":false,\"currentOwner\":\"DefaultManufacturer\",\"sta",
+      "correct_behavior": false,
+      "verdict": "!! NOT BLOCKED \u2014 potential vulnerability !!"
+    },
+    {
+      "label": "B4 - Numeric batchId (type confusion)",
+      "description": "Numeric batch ID instead of string \u2014 should fail validation.",
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "status_code": 500,
+      "response": "{\"error\":\"Failure: Inconsistent type in JSPB repeated field array. Got number expected object\"}",
+      "correct_behavior": true,
+      "verdict": "CORRECTLY BLOCKED"
+    },
+    {
+      "label": "B5 - Legitimate write (control / sanity check)",
+      "description": "Valid payload to active batch should SUCCEED \u2014 confirms the other rejections are intentional, not network errors.",
+      "expected_blocked": false,
+      "actual_blocked": false,
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch BATCH_1792760493\",\"receivedData\":{\"batchId\":\"BATCH_1792760493\",\"temperature\":5.2,\"humidity\":54,\"timestamp\":\"2026-10-23T16:07:10.878355+00:00\",\"reporter\":\"Sensor_Omkar_01\"},\"blockchainState\":{\"excursionAlert\":true,\"currentOwner\":\"DHL Logistics\",",
+      "correct_behavior": true,
+      "verdict": "CORRECTLY ACCEPTED (control test)"
+    },
+    {
+      "label": "B6 - Extremely long batchId (buffer/overflow probe)",
+      "description": "Very long string as batchId to test input sanitisation.",
+      "expected_blocked": true,
+      "actual_blocked": false,
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "correct_behavior": false,
+      "verdict": "!! NOT BLOCKED \u2014 potential vulnerability !!"
+    },
+    {
+      "label": "B7 - Path traversal in batchId",
+      "description": "../../etc/passwd style injection in batchId field.",
+      "expected_blocked": true,
+      "actual_blocked": false,
+      "status_code": 200,
+      "response": "{\"success\":true,\"message\":\"Temperature logged for batch ../../etc/passwd\",\"receivedData\":{\"batchId\":\"../../etc/passwd\",\"temperature\":5,\"humidity\":55,\"timestamp\":\"2026-10-23T16:07:10.878355+00:00\",\"reporter\":\"Attacker\"},\"blockchainState\":{\"excursionAlert\":false,\"currentOwner\":\"DefaultManufacturer\",\"s",
+      "correct_behavior": false,
+      "verdict": "!! NOT BLOCKED \u2014 potential vulnerability !!"
+    }
+  ],
+  "summary": {
+    "total_scenarios": 7,
+    "correct_behavior": 2,
+    "unexpected_behavior": 5,
+    "unreachable_skipped": 0,
+    "access_control_passed": false
+  }
+}

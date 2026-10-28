@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import os
 import json
 import joblib
@@ -175,7 +177,12 @@ def predict():
         # Compute the 11 engineered features using the rolling buffer
         feature_vector = _compute_features(temperature, humidity, sensor_id, data.get("timestamp"))
 
-        X        = feature_vector.reshape(1, -1)
+        feature_names = metadata.get("feature_names", [])
+        if feature_names and len(feature_names) == len(feature_vector):
+            import pandas as pd
+            X = pd.DataFrame([feature_vector], columns=feature_names)
+        else:
+            X = feature_vector.reshape(1, -1)
         X_scaled = scaler.transform(X)
 
         prediction    = model.predict(X_scaled)[0]

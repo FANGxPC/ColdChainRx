@@ -40,7 +40,7 @@ _FABRIC_BASE = os.getenv(
 BACKEND_URL = f"{_FABRIC_BASE}/api/iot/temperature"
 
 # Maximum time to wait for the backend
-BACKEND_TIMEOUT = 10
+BACKEND_TIMEOUT = 4
 
 
 # ============================================================
@@ -761,7 +761,7 @@ def main():
 
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION1,
-        client_id="MEDICAL_GATEWAY_01"
+        client_id=f"MEDICAL_GATEWAY_{os.getpid()}"
     )
 
 

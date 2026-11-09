@@ -8,6 +8,7 @@ __pycache__/
 # Environment variables & secrets
 .env
 backend/.env
+
 *.env
 
 # Private Hardware Credentials & Code Backups

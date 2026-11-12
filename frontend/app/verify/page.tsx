@@ -13,7 +13,7 @@ import { MlBadge } from "@/components/verify/ml-badge";
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const API_BASE = "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,6 +64,8 @@ export default function VerifyPage() {
   const [isMock, setIsMock] = useState(false);           // true when blockchain unreachable
   const [mlResult, setMlResult] = useState<MlResult | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
+  const [historyTxId, setHistoryTxId] = useState<string | null>(null);
+  const [historyTimestamp, setHistoryTimestamp] = useState<string | null>(null);
 
   // Suppress hydration mismatch
   useEffect(() => setMounted(true), []);
@@ -82,6 +84,8 @@ export default function VerifyPage() {
     setLoading(true);
     setLiveData(null);
     setMlResult(null);
+    setHistoryTxId(null);
+    setHistoryTimestamp(null);
 
     try {
       const res = await fetch(`${API_BASE}/api/fabric/batch/${encodeURIComponent(batchId)}`);
@@ -91,6 +95,17 @@ export default function VerifyPage() {
         setLiveData(json.data);
         setIsMock(!!json._mock);
         if (json.qrCode) setQrCodeUrl(json.qrCode);
+
+        // Fetch audit history for real Fabric txId & commit timestamp
+        fetch(`${API_BASE}/api/fabric/batch/${encodeURIComponent(batchId)}/history?pageSize=1`)
+          .then((r) => r.json())
+          .then((hist) => {
+            if (hist?.success && Array.isArray(hist.data) && hist.data.length > 0) {
+              setHistoryTxId(hist.data[0].txId);
+              if (hist.data[0].timestamp) setHistoryTimestamp(hist.data[0].timestamp);
+            }
+          })
+          .catch(() => {});
 
         // After fetching the batch, run ML on the latest reading
         const readings = json.data?.readings;
@@ -204,21 +219,36 @@ export default function VerifyPage() {
   const isExcursion =
     currentDataset.excursionAlert ||
     currentDataset.status?.includes("Breach") ||
-    currentDataset.status?.includes("Warning");
+    currentDataset.status?.includes("Warning") ||
+    currentDataset.status?.includes("Compromised");
 
   const lastReading = currentDataset.readings?.[currentDataset.readings.length - 1];
 
+  const minSafeThreshold = currentDataset.requiredTempMin ?? currentDataset.minTemp ?? 2.0;
+  const maxSafeThreshold = currentDataset.requiredTempMax ?? currentDataset.maxTemp ?? 8.0;
+
   const mappedBatch = {
-    id: currentDataset.batchId,
-    status: isExcursion ? "compromised" : "authentic",
-    drug: currentDataset.drugName,
-    manufacturer: currentDataset.manufacturer,
+    id: currentDataset.batchId || currentDataset.id,
+    batchId: currentDataset.batchId || currentDataset.id,
+    status: isExcursion ? "breach" : "authentic",
+    rawStatus: currentDataset.rawStatus || currentDataset.status || "Manufactured",
+    drug: currentDataset.drugName || currentDataset.drug || "COVID-19 mRNA Vaccine",
+    drugName: currentDataset.drugName || currentDataset.drug || "COVID-19 mRNA Vaccine",
+    manufacturer: currentDataset.manufacturer || "Pfizer-BioNTech",
+    currentOwner: currentDataset.currentOwner || "Pfizer-BioNTech",
+    assignedDevice: currentDataset.assignedDevice || "Sensor_Omkar_01",
     mfgDate: currentDataset.mfgDate || "—",
     expiry: currentDataset.expiryDate || "—",
+    expiryDate: currentDataset.expiryDate || "—",
     location: lastReading?.location || currentDataset.currentOwner || "Unknown",
     liveTemp: lastReading?.temp ?? 0,
-    txHash: "0x7f9a8b2c4d1e3f5a6b7c8d9e0f1a2b3c4d5e6f7a",
-    verifiedAt: new Date().toISOString(),
+    minTemp: minSafeThreshold,
+    maxTemp: maxSafeThreshold,
+    minSafe: minSafeThreshold,
+    maxSafe: maxSafeThreshold,
+    txId: historyTxId || currentDataset.txId || "b6a82a7f51953ce02672fa69c5305ce7b5454d6a13f6797a7e8b67eb637a77b8",
+    txHash: historyTxId || currentDataset.txHash || "b6a82a7f51953ce02672fa69c5305ce7b5454d6a13f6797a7e8b67eb637a77b8",
+    verifiedAt: historyTimestamp || new Date().toISOString(),
     blockHeight: 124045,
     // Use live ML result if available, otherwise fall back to count-based heuristic
     anomalies: mlResult
@@ -228,7 +258,7 @@ export default function VerifyPage() {
               (r: any) => r.status === "CRITICAL_EXCURSION" || r.status === "WARNING"
             ).length ?? 0
           : 0),
-    node: "peer0.org1.pharmachain.com",
+    node: "peer0.manufacturer.coldchainrx.com",
   };
 
   if (!mounted) return null;
@@ -287,8 +317,14 @@ export default function VerifyPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <button
+              onClick={() => { setSelectedDatasetKey("seeded"); setSearchBatchId("BATCH001"); }}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${selectedDatasetKey === "seeded" || currentDataset.batchId === "BATCH001" ? "bg-purple-600 text-white border-purple-600" : "bg-background hover:bg-muted"}`}
+            >
+              🔗 Live Seeded (BATCH001)
+            </button>
+            <button
               onClick={() => { setSelectedDatasetKey("standard"); setSearchBatchId(""); }}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${selectedDatasetKey === "standard" && !liveData ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${selectedDatasetKey === "standard" && currentDataset.batchId !== "BATCH001" && !liveData ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
             >
               ✅ Standard (2-8°C)
             </button>
@@ -324,7 +360,7 @@ export default function VerifyPage() {
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Enter Batch ID (e.g. BATCH_1792760493)…"
+                placeholder="Enter Batch ID (e.g. BATCH001)…"
                 className="w-full rounded-xl border bg-background py-2 pl-9 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 value={searchBatchId}
                 onChange={(e) => setSearchBatchId(e.target.value)}
@@ -363,7 +399,10 @@ export default function VerifyPage() {
                 <Thermometer className={`size-5 ${isExcursion ? "text-destructive" : "text-safe"}`} aria-hidden />
                 <span className="text-sm text-muted-foreground">Live Telemetry:</span>
                 <span className="font-mono text-lg font-semibold text-foreground">
-                  {mappedBatch.liveTemp.toFixed(1)}{currentDataset.unit}
+                  {typeof mappedBatch.liveTemp === "number" && !isNaN(mappedBatch.liveTemp)
+                    ? mappedBatch.liveTemp.toFixed(1)
+                    : "—"}
+                  {currentDataset.unit}
                 </span>
               </div>
               <span className={`inline-flex items-center justify-center sm:justify-start gap-1.5 text-sm font-medium ${isExcursion ? "text-destructive" : "text-safe"}`}>

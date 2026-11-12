@@ -69,5 +69,50 @@ export const mockTelemetryDatasets = {
       { time: "10:00", temp: -68.5, humidity: 90, location: "Air Cargo Vault", hop: "Air Transit", status: "NORMAL" },
       { time: "12:00", temp: -70.9, humidity: 91, location: "Central Hospital Freezer", hop: "Dispensing Vault", status: "NORMAL" }
     ]
+  },
+  batch001: {
+    batchId: "BATCH001",
+    id: "BATCH001",
+    drugName: "Covishield",
+    manufacturer: "Serum Institute of India",
+    currentOwner: "Manufacturer",
+    assignedDevice: "ESP32_BOX_01",
+    deviceId: "ESP32_BOX_01",
+    mfgDate: "2026-10-27",
+    expiryDate: "2027-10-27",
+    requiredTempMin: 2,
+    requiredTempMax: 8,
+    unit: "°C",
+    status: "IN_TRANSIT",
+    storageType: "Refrigerated Cold Storage (2°C - 8°C)",
+    excursionAlert: false,
+    readings: [
+      { time: "14:00", temp: 4.8, humidity: 60.0, location: "ESP32_BOX_01", hop: "Manufactured", status: "NORMAL", timestamp: "2026-10-27T14:00:00Z" },
+      { time: "14:30", temp: 5.1, humidity: 59.5, location: "ESP32_BOX_01", hop: "In Transit", status: "NORMAL", timestamp: "2026-10-27T14:30:00Z" },
+      { time: "15:00", temp: 4.9, humidity: 61.2, location: "ESP32_BOX_01", hop: "In Transit", status: "NORMAL", timestamp: "2026-10-27T15:00:00Z" },
+    ]
+  },
+  seeded: {
+    batchId: "BATCH001",
+    id: "BATCH001",
+    drugName: "Covishield",
+    manufacturer: "Serum Institute of India",
+    currentOwner: "Manufacturer",
+    assignedDevice: "ESP32_BOX_01",
+    deviceId: "ESP32_BOX_01",
+    mfgDate: "2026-10-27",
+    expiryDate: "2027-10-27",
+    requiredTempMin: 2,
+    requiredTempMax: 8,
+    unit: "°C",
+    status: "IN_TRANSIT",
+    storageType: "Refrigerated Cold Storage (2°C - 8°C)",
+    excursionAlert: false,
+    readings: [
+      { time: "14:00", temp: 4.8, humidity: 60.0, location: "ESP32_BOX_01", hop: "Manufactured", status: "NORMAL", timestamp: "2026-10-27T14:00:00Z" },
+      { time: "14:30", temp: 5.1, humidity: 59.5, location: "ESP32_BOX_01", hop: "In Transit", status: "NORMAL", timestamp: "2026-10-27T14:30:00Z" },
+      { time: "15:00", temp: 4.9, humidity: 61.2, location: "ESP32_BOX_01", hop: "In Transit", status: "NORMAL", timestamp: "2026-10-27T15:00:00Z" },
+    ]
   }
 };
+

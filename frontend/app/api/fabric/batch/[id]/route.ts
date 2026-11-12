@@ -1,7 +1,16 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-const FABRIC_BACKEND_URL =
+import path from "node:path";
+import dotenv from "dotenv";
+
+if (!process.env.FABRIC_BACKEND_URL) {
+  dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
+  dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+}
+
+const rawFabricUrl =
   process.env.FABRIC_BACKEND_URL || "http://10.194.253.204:5000";
+const FABRIC_BACKEND_URL = rawFabricUrl.replace(/\/+$/, "");
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -30,6 +39,21 @@ export async function GET(_request: Request, context: RouteContext) {
     });
 
     const body = await upstream.text();
+
+    if (!upstream.ok) {
+      const isNotFound =
+        upstream.status === 404 || body.includes("does not exist");
+      const status = isNotFound ? 404 : upstream.status;
+      return NextResponse.json(
+        {
+          success: false,
+          error: isNotFound
+            ? `Batch '${id}' does not exist on blockchain.`
+            : `Ledger error: ${body}`,
+        },
+        { status }
+      );
+    }
 
     return new Response(body, {
       status: upstream.status,

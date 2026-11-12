@@ -1,4 +1,11 @@
-export type BatchStatus = "authentic" | "breach"
+export type BatchStatus = "authentic" | "breach" | "compromised" | "quarantined";
+export type BatchLifecycleStatus =
+  | 'Manufactured'
+  | 'InTransit'
+  | 'Delivered'
+  | 'Quarantined'
+  | 'Compromised';
+
 export type MlStatus = "normal" | "anomaly"
 export type SyncStatus = "synced" | "pending" | "syncing"
 
@@ -7,24 +14,44 @@ export type TempPoint = {
   t: number
   label: string
   temp: number
+  humidity?: number
+}
+
+export type TemperatureLog = {
+  timestamp: string;
+  temperature: number;
+  humidity: number;
+  reporter: string;
 }
 
 export type Batch = {
   id: string
+  batchId?: string
   drug: string
+  drugName?: string
   manufacturer: string
+  currentOwner?: string
+  assignedDevice?: string
   expiry: string
+  expiryDate?: string
+  mfgDate?: string
   location: string
   liveTemp: number
   status: BatchStatus
+  rawStatus?: BatchLifecycleStatus | string
   ml: MlStatus
   sync: SyncStatus
   anomalies: number
   txHash: string
+  txId?: string
   blockHeight: number
   verifiedAt: string
   minSafe: number
   maxSafe: number
+  minTemp?: number
+  maxTemp?: number
+  excursionAlert?: boolean
+  temperatureLogs?: TemperatureLog[]
   journey: TempPoint[]
 }
 

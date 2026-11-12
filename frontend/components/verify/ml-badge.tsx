@@ -24,9 +24,9 @@ export function MlBadge({ batch, mlResult, mlLoading = false }: MlBadgeProps) {
   const clean = !isAnomaly
 
   // Build a human-readable score label when we have a real ML score
-  const scoreLabel = mlResult
+  const scoreLabel = (mlResult && typeof mlResult.anomaly_score === "number" && !isNaN(mlResult.anomaly_score))
     ? `Score: ${mlResult.anomaly_score.toFixed(3)}${mlResult.fallback_used ? " (rule-based)" : ""}`
-    : `${batch.anomalies} anomalies detected`
+    : `${batch?.anomalies ?? 0} anomalies detected`
 
   return (
     <div
